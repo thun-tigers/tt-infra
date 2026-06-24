@@ -26,11 +26,11 @@ Die fachlichen Anwendungen bleiben in separaten Repositories:
 ## Struktur
 
 - `docker-compose.yml` zentraler Compose-Stack
-- `.env.example` Beispiel fuer benoetigte Umgebungsvariablen
+- `.env.example` lokale Vorlagendatei fuer die benoetigten Umgebungsvariablen
 - `docs/architecture.md` Zielarchitektur
 - `docs/stack-architecture.md` detaillierte Plattform-Architektur
 - `docs/operations.md` Betriebs- und Deployment-Hinweise
-- `docs/cloudflare-tunnel.md` Tunnel- und Hostname-Setup fuer Beta und Produktion
+- `docs/cloudflare-tunnel.md` spaeteres Tunnel- und Hostname-Setup
 - `docs/data-migration.md` Datenmigration von SQLite nach PostgreSQL
 
 ## Schnellstart
@@ -38,45 +38,29 @@ Die fachlichen Anwendungen bleiben in separaten Repositories:
 1. Repositories fuer `tt-auth`, `tt-members`, `tt-agenda` und `tt-analytics` lokal neben dieses Repo legen oder als externe Images verwenden.
 2. `.env.example` nach `.env` kopieren und Werte setzen.
 3. Pfade oder Image-Namen im `docker-compose.yml` anpassen.
-4. Beta-Stack mit extern erreichbarer URL starten:
+4. Lokalen Stack starten:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.edge.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
 ## Deployment-Modi
 
 - `docker-compose.yml`: gemeinsamer Basis-Stack ohne oeffentliche App-Ports
-- `docker-compose.local.yml`: optionaler lokaler Direktzugriff ueber `localhost:8085/8086/8087`
-- `docker-compose.edge.yml`: Ingress ueber Traefik plus `cloudflared`
+- `docker-compose.local.yml`: lokaler Direktzugriff ueber `localhost:8085/8086/8087/8088`
+- `docker-compose.edge.yml`: vorbereiteter Ingress ueber Traefik plus `cloudflared`
 
-### Beta auf dem Entwickler-Laptop
+### Lokal auf dem Entwickler-Laptop
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.edge.yml up -d --build
-```
-
-` .env.example ` ist bewusst auf Beta als Standardfall ausgelegt, weil diese Umgebung auf dem Entwickler-Laptop zugleich extern testbar sein soll.
-
-### Produktion auf Proxmox
-
-```bash
-cp .env.prod.example .env
-docker compose -f docker-compose.yml -f docker-compose.edge.yml up -d --build
-```
-
-Beta und Produktion laufen als getrennte Deployments ueber unterschiedliche `COMPOSE_PROJECT_NAME`-, Hostname- und Tunnel-Konfigurationen.
-
-### Optional nur lokal ohne Tunnel
-
-```bash
-cp .env.local.example .env
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
+Spätere Deployment-Profile kommen in ein separates Deployment-Dokument, sobald der Server-Prozess definiert ist.
+
 ## Hinweise
 
-- Die Compose-Dateien verwenden fuer `tt-auth`, `tt-agenda` und `tt-analytics` relative Build-Pfade in benachbarte Repositories.
-- Feste `container_name`-Eintraege wurden bewusst entfernt, damit Beta und Produktion parallel als getrennte Compose-Projekte betrieben werden koennen.
+- Die Compose-Dateien verwenden fuer `tt-auth`, `tt-members`, `tt-agenda` und `tt-analytics` relative Build-Pfade in benachbarte Repositories.
+- Feste `container_name`-Eintraege wurden bewusst entfernt, damit lokale und spaetere Deployment-Kontexte nicht aneinanderkoppeln.
 - Fuer Edge-Betrieb uebernimmt Cloudflare den externen Zugang, waehrend Traefik intern per Hostname an die Services weiterleitet.
