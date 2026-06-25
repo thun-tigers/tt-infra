@@ -59,6 +59,12 @@ services:
     networks:
       - tigers-internal
       - tigers-edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.tt-auth.rule: Host(`auth-beta.thun-tigers.net`)
+      traefik.http.routers.tt-auth.entrypoints: web
+      traefik.http.routers.tt-auth.service: tt-auth
+      traefik.http.services.tt-auth.loadbalancer.server.port: "5000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
@@ -91,6 +97,12 @@ services:
     networks:
       - tigers-internal
       - tigers-edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.tt-members.rule: Host(`members-beta.thun-tigers.net`)
+      traefik.http.routers.tt-members.entrypoints: web
+      traefik.http.routers.tt-members.service: tt-members
+      traefik.http.services.tt-members.loadbalancer.server.port: "5000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
@@ -127,6 +139,12 @@ services:
     networks:
       - tigers-internal
       - tigers-edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.tt-agenda.rule: Host(`agenda-beta.thun-tigers.net`)
+      traefik.http.routers.tt-agenda.entrypoints: web
+      traefik.http.routers.tt-agenda.service: tt-agenda
+      traefik.http.services.tt-agenda.loadbalancer.server.port: "5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -170,6 +188,12 @@ services:
     networks:
       - tigers-internal
       - tigers-edge
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.tt-analytics.rule: Host(`analytics-beta.thun-tigers.net`)
+      traefik.http.routers.tt-analytics.entrypoints: web
+      traefik.http.routers.tt-analytics.service: tt-analytics
+      traefik.http.services.tt-analytics.loadbalancer.server.port: "5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -249,7 +273,8 @@ services:
     image: traefik:v3.0
     command:
       - --api.dashboard=true
-      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --ping=true
       - --accesslog=true
@@ -257,7 +282,7 @@ services:
     ports:
       - "${TRAEFIK_HTTP_PORT:-80}:80"
     volumes:
-      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
     networks:
       - tigers-internal
@@ -268,17 +293,17 @@ services:
       timeout: 5s
       retries: 3
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    environment:
-      TUNNEL_METRICS: 0.0.0.0:2000
-    restart: unless-stopped
-    depends_on:
-      traefik:
-        condition: service_healthy
-    networks:
-      - tigers-edge
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+  #   environment:
+  #     TUNNEL_METRICS: 0.0.0.0:2000
+  #   restart: unless-stopped
+  #   depends_on:
+  #     traefik:
+  #       condition: service_healthy
+  #   networks:
+  #     - tigers-edge
 
 networks:
   tigers-edge:
