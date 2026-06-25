@@ -1,0 +1,303 @@
+services:
+  tt-infra:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-infra:${TT_INFRA_IMAGE_TAG:?set-production-tag}
+    pull_policy: always
+    environment:
+      SECRET_KEY: ${INFRA_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      AUTO_CREATE_DB: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - tt-infra-data:/app/instance
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/api/health').status == 200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  tt-auth:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-auth:${TT_AUTH_IMAGE_TAG:?set-production-tag}
+    pull_policy: always
+    environment:
+      SECRET_KEY: ${AUTH_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-8}
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AUTO_CREATE_DB: "true"
+      CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-false}
+      CREATE_DEFAULT_SERVICES: "true"
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+      DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL}
+      DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL}
+      DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL}
+      DEFAULT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      DEFAULT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
+      DEFAULT_ANALYTICS_INTERNAL_URL: http://tt-analytics:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_TOKEN_EXPIRY_SECONDS: ${SSO_TOKEN_EXPIRY_SECONDS:-60}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/0
+      TZ: ${TZ:-Europe/Zurich}
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres-auth:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+      - tigers-edge
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  tt-members:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-members:${TT_MEMBERS_IMAGE_TAG:?set-production-tag}
+    pull_policy: always
+    environment:
+      SECRET_KEY: ${MEMBERS_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL}
+      AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL}
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      SSO_EXPECTED_AUDIENCE: tt-members
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      RATELIMIT_STORAGE_URI: memory://
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - tt-members-data:/app/instance
+    depends_on:
+      tt-auth:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+      - tigers-edge
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  tt-agenda:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-agenda:${TT_AGENDA_IMAGE_TAG:?set-production-tag}
+    pull_policy: always
+    environment:
+      SECRET_KEY: ${AGENDA_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
+      AUTH_BASE_URL: ${AGENDA_AUTH_BASE_URL}
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      SSO_EXPECTED_AUDIENCE: tt-agenda
+      SSO_AUTO_PROVISION_USERS: ${AGENDA_SSO_AUTO_PROVISION_USERS:-true}
+      SSO_SYNC_ROLE: ${AGENDA_SSO_SYNC_ROLE:-true}
+      WEBHOOK_ENABLED: ${AGENDA_WEBHOOK_ENABLED:-false}
+      WEBHOOK_URL: ${AGENDA_WEBHOOK_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/1
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TZ: ${TZ:-Europe/Zurich}
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres-agenda:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+      - tigers-edge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  tt-analytics:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-analytics:${TT_ANALYTICS_IMAGE_TAG:?set-production-tag}
+    pull_policy: always
+    environment:
+      SECRET_KEY: ${ANALYTICS_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
+      AUTH_BASE_URL: ${ANALYTICS_AUTH_BASE_URL}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      SSO_EXPECTED_AUDIENCE: tt-analytics
+      SSO_AUTO_PROVISION_USERS: ${ANALYTICS_SSO_AUTO_PROVISION_USERS:-true}
+      SSO_SYNC_ROLE: ${ANALYTICS_SSO_SYNC_ROLE:-true}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      AUTO_CREATE_DB: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      UPLOAD_ROOT: /app/instance/uploads
+      MAX_CONTENT_LENGTH: ${ANALYTICS_MAX_CONTENT_LENGTH:-2147483648}
+      GEMINI_API_KEY: ${ANALYTICS_GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${ANALYTICS_GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_FILE_POLL_SECONDS: ${ANALYTICS_GEMINI_FILE_POLL_SECONDS:-5}
+      GEMINI_FILE_POLL_TIMEOUT_SECONDS: ${ANALYTICS_GEMINI_FILE_POLL_TIMEOUT_SECONDS:-300}
+      GEMINI_MAX_RETRIES: ${ANALYTICS_GEMINI_MAX_RETRIES:-8}
+      GEMINI_RETRY_BUFFER_SECONDS: ${ANALYTICS_GEMINI_RETRY_BUFFER_SECONDS:-5}
+      GEMINI_RETRY_DEFAULT_SECONDS: ${ANALYTICS_GEMINI_RETRY_DEFAULT_SECONDS:-60}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/2
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - analytics-uploads-data:/app/instance/uploads
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres-analytics:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+      - tigers-edge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  tt-redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-auth:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_AUTH_DB:-tt_auth}
+      POSTGRES_USER: ${POSTGRES_AUTH_USER:-tt_auth}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER:-tt_auth} -d ${POSTGRES_AUTH_DB:-tt_auth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-agenda:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_AGENDA_DB:-tt_agenda}
+      POSTGRES_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
+      POSTGRES_PASSWORD: ${POSTGRES_AGENDA_PASSWORD}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-agenda-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AGENDA_USER:-tt_agenda} -d ${POSTGRES_AGENDA_DB:-tt_agenda}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-analytics:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_ANALYTICS_DB:-tt_analytics}
+      POSTGRES_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
+      POSTGRES_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-analytics-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ANALYTICS_USER:-tt_analytics} -d ${POSTGRES_ANALYTICS_DB:-tt_analytics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --api.dashboard=true
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.web.address=:80
+      - --ping=true
+      - --accesslog=true
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+    ports:
+      - "${TRAEFIK_HTTP_PORT:-80}:80"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+      - tigers-edge
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      TUNNEL_METRICS: 0.0.0.0:2000
+    restart: unless-stopped
+    depends_on:
+      traefik:
+        condition: service_healthy
+    networks:
+      - tigers-edge
+
+networks:
+  tigers-edge:
+    name: tigers-prod-edge
+  tigers-internal:
+    name: tigers-prod-internal
+
+volumes:
+  tt-infra-data:
+    name: tigers-prod-tt-infra-data
+  tt-members-data:
+    name: tigers-prod-tt-members-data
+  postgres-auth-data:
+    name: tigers-prod-postgres-auth-data
+  postgres-agenda-data:
+    name: tigers-prod-postgres-agenda-data
+  postgres-analytics-data:
+    name: tigers-prod-postgres-analytics-data
+  analytics-uploads-data:
+    name: tigers-prod-analytics-uploads-data
+  redis-data:
+    name: tigers-prod-redis-data

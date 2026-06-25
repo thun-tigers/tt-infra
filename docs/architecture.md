@@ -2,14 +2,15 @@
 
 ## Rolle des Repositories
 
-`tt-operations` ist das zentrale Plattform-Repository fuer Infrastruktur, Deployment und Betriebsdokumentation.
+tt-infra ist das zentrale Plattform-Repository fuer Infrastruktur, Deployment und Betriebsdokumentation.
 
 ## Repositories
 
 - `tt-auth` zentrale Benutzerverwaltung und Service-Zugriff
 - `tt-agenda` Trainings- und Agenda-Service
 - `tt-analytics` Analytics- und Reporting-Service
-- `tt-operations` Compose, Ops, Deployment, Doku
+- `tt-members` Mitgliederprofile und Team-Mitgliedschaften
+- `tt-infra` Compose, Ops, Deployment, Doku
 
 ## Zielarchitektur
 
@@ -74,7 +75,7 @@ if not user:
 
 Alle Microservices verwenden das gleiche Tailwind-CSS-Design-System:
 - Inter-Font (Google Fonts)
-- Dark-Mode mit `localStorage`-Persistenz
+- Dark-Mode mit globalem Cookie (`tt_theme_global`) plus localStorage als Fallback
 - Sticky Navigation mit Logo, Theme-Toggle und User-Avatar
 - Gradient-Hintergrund (`from-slate-50 via-white to-slate-50`)
 - Flash-Messages mit Icon und farbiger Umrandung (success/danger/warning)

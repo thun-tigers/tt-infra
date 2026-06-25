@@ -1,0 +1,61 @@
+name: Validate Release Manifests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker-compose.portainer.production.yml'
+      - '.env.portainer.production.example'
+      - 'releases/*.env'
+      - '.github/workflows/02 validate-release-manifests.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate release manifest filenames and values
+        shell: bash
+        run: |
+          shopt -s nullglob
+          manifests=(releases/*.env)
+          if [ "${#manifests[@]}" -eq 0 ]; then
+            echo "No release manifests found under releases/" >&2
+            exit 1
+          fi
+
+          for manifest in "${manifests[@]}"; do
+            release_name="$(basename "${manifest}" .env)"
+            if [[ ! "${release_name}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Invalid manifest name: ${manifest}" >&2
+              exit 1
+            fi
+
+            for key in TT_INFRA_IMAGE_TAG TT_AUTH_IMAGE_TAG TT_MEMBERS_IMAGE_TAG TT_AGENDA_IMAGE_TAG TT_ANALYTICS_IMAGE_TAG; do
+              value="$(grep -E "^${key}=" "${manifest}" | tail -n 1 | cut -d= -f2-)"
+              if [[ "${value}" != "v${release_name}" ]]; then
+                echo "${manifest}: ${key} must be v${release_name}, got ${value}" >&2
+                exit 1
+              fi
+            done
+          done
+
+      - name: Render production compose for each release manifest
+        shell: bash
+        run: |
+          for manifest in releases/*.env; do
+            echo "Validating ${manifest}"
+            docker compose \
+              --env-file .env.portainer.production.example \
+              --env-file "${manifest}" \
+              -f docker-compose.portainer.production.yml \
+              config > /dev/null
+          done

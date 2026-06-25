@@ -19,13 +19,13 @@ Zusatz:
 ## Voraussetzungen
 
 - Docker Desktop oder ein laufender Docker-Daemon
-- `docker compose up -d tt-postgres-auth tt-postgres-agenda` in `tt-operations`
+- `docker compose up -d tt-postgres-auth tt-postgres-agenda` in tt-infra
 - Python mit `psycopg` verfuegbar
 
 ## Postgres starten
 
 ```bash
-cd /Users/swisi/Repos/tigers/tt-operations
+cd /Users/swisi/Repos/tigers/tt-infra
 docker compose up -d tt-postgres-auth tt-postgres-agenda
 ```
 
@@ -52,7 +52,7 @@ docker compose up -d web
 ### tt-auth
 
 ```bash
-cd /Users/swisi/Repos/tigers/tt-operations
+cd /Users/swisi/Repos/tigers/tt-infra
 python3 scripts/migrate_tt_auth_sqlite_to_postgres.py \
   --sqlite-path ../tt-auth/instance/auth.db \
   --postgres-dsn postgresql://tt_auth:tt_auth_password@localhost:5432/tt_auth
@@ -61,7 +61,7 @@ python3 scripts/migrate_tt_auth_sqlite_to_postgres.py \
 ### tt-agenda
 
 ```bash
-cd /Users/swisi/Repos/tigers/tt-operations
+cd /Users/swisi/Repos/tigers/tt-infra
 python3 scripts/migrate_tt_agenda_sqlite_to_postgres.py \
   --sqlite-path ../tt-agenda/instance/trainings.db \
   --postgres-dsn postgresql://tt_agenda:tt_agenda_password@localhost:5432/tt_agenda \

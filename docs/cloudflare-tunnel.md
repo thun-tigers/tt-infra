@@ -1,7 +1,6 @@
 # Cloudflare Tunnel mit Traefik
 
-Dieses Dokument bleibt vorerst als Entwurf fuer einen spaeteren externen Deployment-Prozess bestehen.
-Fuer den aktuellen Arbeitsstand ist der lokale Stack mit `.env.example` und `docker-compose.local.yml` die relevante Variante.
+Dieses Dokument beschreibt den aktiven Beta-Betrieb mit Cloudflare Tunnel und Traefik.
 
 ## Zielbild
 
@@ -11,20 +10,31 @@ Die Kette lautet:
 - Cloudflare DNS und Edge
 - `cloudflared`
 - Traefik
-- `tt-auth`, `tt-agenda`, `tt-analytics`
+- `tt-auth`, `tt-members`, `tt-agenda`, `tt-analytics`
 
 Cloudflare und Traefik sind dabei nicht doppelt.
 
 - Cloudflare ist fuer DNS, TLS, WAF und Tunnel-Zugang zustaendig.
 - Traefik ist fuer das interne Hostname-Routing im Docker-Stack zustaendig.
 
-## Spaetere Deployment-Richtung
+## Aktive Beta-Hostnames
 
-Wenn ein virtueller Server dazukommt, wird der externe Betrieb wieder sauber getrennt dokumentiert:
+- auth-beta.thun-tigers.net
+- members-beta.thun-tigers.net
+- agenda-beta.thun-tigers.net
+- analytics-beta.thun-tigers.net
 
-- eigene `.env` fuer den Deployment-Kontext
-- eigener Tunnel- oder Ingress-Prozess
-- eigene Domain-Zuordnung
-- eigene Secret-Verwaltung
+## Routing-Prinzip
 
-Bis dahin ist die lokale Compose-Variante die einzige relevante Betriebsform.
+- Extern endet TLS bei Cloudflare.
+- Cloudflared leitet HTTP-Requests in den Docker-Stack.
+- Traefik routed nach Hostname auf die internen Services.
+- Service-zu-Service Kommunikation laeuft intern im Compose-Netz.
+
+## Cookie- und SSO-Hinweis
+
+Fuer serviceuebergreifende Anmeldung und Theme-Sync muessen folgende Punkte konsistent sein:
+
+- JWT_COOKIE_DOMAIN in Beta auf .thun-tigers.net
+- identische SSO_SHARED_SECRET Werte in allen Services
+- AUTH_BASE_URL und Service-URLs in tt-auth auf die beta-Hostnames gesetzt
