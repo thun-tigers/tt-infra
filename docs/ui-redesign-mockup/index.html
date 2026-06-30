@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tigers Platform · UI Redesign Mockup</title>
+<meta name="theme-color" content="#4f46e5">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',
+            500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b'
+          }
+        },
+        fontFamily: { sans: ['Inter','sans-serif'] }
+      }
+    }
+  }
+</script>
+<style>
+  *{font-family:'Inter',sans-serif}
+  .device{width:100%;max-width:430px;margin:0 auto}
+  .safe-bottom{padding-bottom:max(env(safe-area-inset-bottom),0px)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(100,116,139,.35);border-radius:9px}
+  .glass{backdrop-filter:saturate(180%) blur(16px)}
+  /* Variant B token overrides */
+  html[data-variant="b"] .v-accent{color:#ea580c}
+  html[data-variant="b"] .v-accent-bg{background:#ea580c}
+  html[data-variant="b"] .v-accent-bg-soft{background:rgba(234,88,12,.12)}
+  html[data-variant="b"] .v-accent-text{color:#ea580c}
+  html[data-variant="b"] .v-accent-ring{--tw-ring-color:rgba(234,88,12,.4)}
+  html[data-variant="b"] .v-brand-grad{background:linear-gradient(135deg,#f97316,#ea580c 55%,#7c2d12)}
+  html[data-variant="b"] .v-hero-grad{background:linear-gradient(135deg,#ea580c,#f59e0b)}
+  /* Variant A defaults (indigo) */
+  .v-accent{color:#4f46e5}
+  .v-accent-bg{background:#4f46e5}
+  .v-accent-bg-soft{background:rgba(79,70,229,.1)}
+  .v-accent-text{color:#4f46e5}
+  .v-accent-ring{--tw-ring-color:rgba(99,102,241,.4)}
+  .v-brand-grad{background:radial-gradient(circle at top left,#c7d2fe,#6366f1 60%,#1e1b4b)}
+  .v-hero-grad{background:linear-gradient(135deg,#4f46e5,#2563eb)}
+  .dark html, .dark{color-scheme:dark}
+</style>
+</head>
+<body class="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 antialiased">
+
+<!-- ============ MOCKUP CONTROL BAR ============ -->
+<div class="sticky top-0 z-[100] border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 glass">
+  <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm">
+    <span class="font-bold tracking-tight mr-1">Tigers UI&nbsp;·&nbsp;<span class="v-accent">Redesign Mockup</span></span>
+    <span class="text-xs text-slate-400 hidden sm:inline mr-auto">Konzept – kein echter Code geändert</span>
+    <div class="flex items-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+      <button data-view="phone" class="viewbtn px-2.5 py-1 rounded-lg text-xs font-semibold"><i class="bi bi-phone"></i> Mobil</button>
+      <button data-view="desktop" class="viewbtn px-2.5 py-1 rounded-lg text-xs font-semibold"><i class="bi bi-display"></i> Desktop</button>
+    </div>
+    <div class="flex items-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+      <button data-variant="a" class="varbtn px-2.5 py-1 rounded-lg text-xs font-semibold">Variante A · Indigo</button>
+      <button data-variant="b" class="varbtn px-2.5 py-1 rounded-lg text-xs font-semibold">Variante B · Tiger</button>
+    </div>
+    <button id="themeToggle" class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+      <i class="bi bi-moon-stars" id="themeIcon"></i> Theme
+    </button>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="stage" class="py-6 px-3 transition-all">
+<div id="frame" class="device rounded-[2.2rem] overflow-hidden shadow-2xl ring-1 ring-slate-300/60 dark:ring-slate-700/60 bg-white dark:bg-slate-900">
+
+  <!-- ---- Top app bar (TT-Logo + Service-Icon pro Service) ---- -->
+  <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 glass">
+    <div class="flex items-center gap-3 px-4 h-14">
+      <!-- TT Club Logo (zentral, alle Services) -->
+      <div class="h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-white ring-1 ring-slate-200 dark:ring-slate-500 shadow-sm">
+        <img src="tt-logo.png" alt="TT" class="w-full h-full object-contain p-0.5">
+      </div>
+      <div class="min-w-0">
+        <div class="text-[0.6rem] font-bold uppercase tracking-[0.22em] v-accent-text leading-none">Thun Tigers</div>
+        <div class="flex items-center gap-1.5">
+          <i id="appIcon" class="bi text-sm v-accent-text"></i>
+          <span id="appName" class="text-sm font-bold leading-tight truncate">Plattform</span>
+        </div>
+      </div>
+      <div class="ml-auto flex items-center gap-1.5">
+        <button class="relative h-8 w-8 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i class="bi bi-bell"></i>
+          <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500"></span>
+        </button>
+        <button class="h-8 w-8 grid place-items-center rounded-full v-accent-bg text-white text-xs font-bold">SW</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ---- Screens ---- -->
+  <main id="screens" class="min-h-[600px]"></main>
+
+  <!-- ---- Bottom tab bar ---- -->
+  <nav class="sticky bottom-0 z-40 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 glass safe-bottom">
+    <div id="tabbar" class="grid grid-cols-4"></div>
+  </nav>
+
+</div>
+</div>
+
+<p class="text-center text-xs text-slate-400 pb-10 px-6 max-w-md mx-auto">
+  Klicke Tabs unten · Service über Glocke (zyklisch) · View/Variant/Theme über die Steuerleiste.
+</p>
+
+<script>
+// ---------- THEME ----------
+const root=document.documentElement, themeBtn=document.getElementById('themeToggle'), themeIcon=document.getElementById('themeIcon');
+function applyTheme(t){ if(t==='dark'){root.classList.add('dark');themeIcon.className='bi bi-sun';}else{root.classList.remove('dark');themeIcon.className='bi bi-moon-stars';} localStorage.setItem('mock_theme',t);}
+applyTheme(localStorage.getItem('mock_theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+themeBtn.onclick=()=>applyTheme(root.classList.contains('dark')?'light':'dark');
+
+// ---------- VARIANT ----------
+function setVariant(v){ root.setAttribute('data-variant',v); localStorage.setItem('mock_variant',v); syncToggles(); }
+// ---------- VIEW ----------
+const frame=document.getElementById('frame'), stage=document.getElementById('stage');
+function setView(v){
+  if(v==='desktop'){ frame.classList.remove('device','rounded-[2.2rem]'); frame.classList.add('max-w-6xl','mx-auto','rounded-3xl'); }
+  else { frame.classList.add('device','rounded-[2.2rem]'); frame.classList.remove('max-w-6xl','mx-auto','rounded-3xl'); }
+  localStorage.setItem('mock_view',v); render(); syncToggles();
+}
+function syncToggles(){
+  const view=localStorage.getItem('mock_view')||'phone', variant=root.getAttribute('data-variant')||'a';
+  document.querySelectorAll('.viewbtn').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('bg-white',on);b.classList.toggle('dark:bg-slate-700',on);b.classList.toggle('shadow-sm',on);b.classList.toggle('text-slate-400',!on);});
+  document.querySelectorAll('.varbtn').forEach(b=>{const on=b.dataset.variant===variant;b.classList.toggle('bg-white',on);b.classList.toggle('dark:bg-slate-700',on);b.classList.toggle('shadow-sm',on);b.classList.toggle('text-slate-400',!on);});
+}
+document.querySelectorAll('.viewbtn').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+document.querySelectorAll('.varbtn').forEach(b=>b.onclick=()=>setVariant(b.dataset.variant));
+
+// ---------- SERVICE / SCREEN MODEL ----------
+// icon* = app-bar service icon (sprechend per Service)
+const services={
+  platform:{name:'Plattform',icon:'bi-shield-lock', iconBar:'bi-shield-lock', tabs:[
+    {id:'hub',label:'Apps',icon:'bi-grid'},
+    {id:'activity',label:'Aktivität',icon:'bi-activity'},
+    {id:'admin',label:'Verwaltung',icon:'bi-people'},
+    {id:'profile',label:'Profil',icon:'bi-person'}]},
+  agenda:{name:'Agenda',icon:'bi-calendar-week', iconBar:'bi-calendar-week-fill', tabs:[
+    {id:'home',label:'Heute',icon:'bi-house'},
+    {id:'plan',label:'Trainings',icon:'bi-calendar2-week'},
+    {id:'live',label:'Live',icon:'bi-broadcast'},
+    {id:'profile',label:'Profil',icon:'bi-person'}]},
+  analytics:{name:'Analytics',icon:'bi-graph-up-arrow', iconBar:'bi-graph-up-arrow', tabs:[
+    {id:'reports',label:'Berichte',icon:'bi-file-earmark-bar-graph'},
+    {id:'games',label:'Spiele',icon:'bi-trophy'},
+    {id:'runs',label:'Läufe',icon:'bi-cpu'},
+    {id:'profile',label:'Profil',icon:'bi-person'}]},
+  members:{name:'Members',icon:'bi-people', iconBar:'bi-people-fill', tabs:[
+    {id:'list',label:'Mitglieder',icon:'bi-people'},
+    {id:'teams',label:'Teams',icon:'bi-diagram-3'},
+    {id:'me',label:'Mein Profil',icon:'bi-person-vcard'},
+    {id:'profile',label:'Konto',icon:'bi-gear'}]},
+};
+let state={service:'platform', tab:'hub'};
+
+// ---------- UI helpers (kompakt) ----------
+const card=(c)=>`<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 shadow-sm ${c||''}">`;
+const chip=(t,c)=>`<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${c}">${t}</span>`;
+const stitle=(t,s)=>`<div class="px-4 pt-4 pb-2"><h2 class="text-base font-bold tracking-tight">${t}</h2>${s?`<p class="text-xs text-slate-500 dark:text-slate-400">${s}</p>`:''}</div>`;
+
+// ---------- SCREEN RENDERERS ----------
+const SCREENS={
+  'platform:hub':()=>`
+    ${stitle('Willkommen, Sven')}
+    <div class="px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-5">
+      ${aCard('Agenda','bi-calendar-week','Trainings & Aktivitäten','agenda','Service-Admin','bg-amber-100 dark:bg-amber-900/40 text-amber-700')}
+      ${aCard('Analytics','bi-graph-up-arrow','Scouting & Spielanalyse','analytics','Analyst','bg-sky-100 dark:bg-sky-900/40 text-sky-700')}
+      ${aCard('Members','bi-people','Mitglieder & Team-Rollen','members','Coach','bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700')}
+      <div class="rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 grid place-items-center p-5 text-center text-slate-400">
+        <i class="bi bi-plus-lg text-xl"></i><div class="text-xs mt-1">Service hinzufügen</div></div>
+    </div>`,
+  'platform:activity':()=>`
+    ${stitle('Aktivität','Letzte Logins & Service-Starts')}
+    <div class="px-4 space-y-1.5 pb-5">
+      ${feed('bi-box-arrow-in-right','Sven hat sich angemeldet','vor 2 Min')}
+      ${feed('bi-broadcast','Agenda Live gestartet','vor 18 Min · U17')}
+      ${feed('bi-file-earmark-plus','Bericht «Scouting Genf»','vor 1 Std')}
+      ${feed('bi-person-plus','Mitglied freigeschaltet','gestern')}
+    </div>`,
+  'platform:admin':()=>`
+    ${stitle('Benutzer','3 ausstehende Freigaben')}
+    <div class="px-4 space-y-1.5 pb-5">
+      ${uRow('Lena Brunner','@lbrunner','ausstehend','bg-amber-100 dark:bg-amber-900/40 text-amber-700')}
+      ${uRow('Marco Keller','@mkeller · Coach','aktiv','bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700')}
+      ${uRow('Anna Vogt','@avogt · Analyst','aktiv','bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700')}
+    </div>`,
+  'platform:profile':()=>profScr('Sven Wisi','Administrator'),
+
+  'agenda:home':()=>`
+    <div class="px-4 pt-4">
+      <div class="relative overflow-hidden rounded-xl shadow-xl v-hero-grad">
+        <div class="absolute -top-8 -left-8 w-28 h-28 bg-white/10 rounded-full"></div>
+        <div class="absolute -bottom-8 -right-4 w-28 h-28 bg-white/10 rounded-full"></div>
+        <div class="relative p-4 text-white">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="grid place-items-center w-5 h-5 rounded-full bg-white/25 animate-pulse"><span class="w-1.5 h-1.5 bg-white rounded-full"></span></span>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Läuft jetzt</span>
+          </div>
+          <h2 class="text-xl font-bold">U17 Athletik</h2>
+          <p class="text-white/80 text-xs mt-0.5">18:30–20:00 · Eishalle 1</p>
+          <button class="mt-3 w-full sm:w-auto px-4 py-2 rounded-lg bg-white v-accent-text font-semibold text-sm"><i class="bi bi-broadcast mr-1"></i> Live-Ansicht</button>
+        </div>
+      </div>
+    </div>
+    ${stitle('Nächste Trainings')}
+    <div class="px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-5">
+      ${tCard('Techniktraining','Mi 02.07 · 17:00','8 Aktivitäten','indigo',['Geplant'])}
+      ${tCard('Spielform 4v4','Do 03.07 · 18:00','5 Aktivitäten','purple',['Geplant','Einmalig'])}
+      ${tCard('Goalie-Spezial','Fr 04.07 · 16:00','4 Aktivitäten','yellow',['Angepasst'])}
+    </div>`,
+  'agenda:plan':()=>`
+    ${stitle('Trainings','Wochenplan U17')}
+    <div class="px-4 pb-5 space-y-1.5">
+      ${lRow('Mo','Krafttraining','17:00','6 Aktivitäten')}
+      ${lRow('Mi','Techniktraining','17:00','8 Aktivitäten')}
+      ${lRow('Do','Spielform 4v4','18:00','5 Aktivitäten')}
+      ${lRow('Fr','Goalie-Spezial','16:00','4 Aktivitäten')}
+    </div>`,
+  'agenda:live':()=>`
+    ${stitle('Live · U17 Athletik','Aktuelle Aktivität hervorgehoben')}
+    <div class="px-4 pb-5 space-y-1.5">
+      ${lRow('Warm-up Mobility','10 Min','done')}
+      ${lRow('Sprint-Intervalle','15 Min','active')}
+      ${lRow('Kraft Zirkel A','20 Min','next')}
+      ${lRow('Cool-down','10 Min','next')}
+    </div>`,
+  'agenda:profile':()=>profScr('Sven Wisi','Coach · U17'),
+
+  'analytics:reports':()=>`
+    <div class="px-4 pt-4">
+      <div class="rounded-xl v-accent-bg-soft border border-slate-200 dark:border-slate-700 p-4">
+        <div class="text-[0.65rem] font-bold uppercase tracking-widest v-accent-text">Scouting</div>
+        <h2 class="text-lg font-bold mt-1">Berichte</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Weniger suchen, schneller entscheiden.</p>
+        <div class="flex flex-wrap gap-2 mt-2">
+          ${chip('<i class="bi bi-collection"></i> 12 Berichte','bg-white/70 dark:bg-slate-900/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700')}
+          ${chip('<i class="bi bi-play-circle"></i> 7 Läufe','bg-white/70 dark:bg-slate-900/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700')}
+        </div>
+        <button class="mt-3 w-full sm:w-auto px-4 py-2 rounded-lg v-accent-bg text-white font-semibold text-sm"><i class="bi bi-file-earmark-plus mr-1"></i> Neuer Bericht</button>
+      </div>
+    </div>
+    <div class="px-4 pb-5 mt-3 space-y-1.5">
+      ${rRow('Scouting-Bericht Genf','EHC Genf · 3 Läufe','fertig')}
+      ${rRow('Spielzugfolge vs. Bern','SC Bern · 2 Läufe','in Arbeit')}
+      ${rRow('Powerplay-Analyse','5 Läufe','fertig')}
+    </div>`,
+  'analytics:games':()=>`
+    ${stitle('Spiele')}
+    <div class="px-4 pb-5 space-y-1.5">
+      ${lRow('SA','Tigers – EHC Genf','19:45','4 : 2')}
+      ${lRow('DI','SC Bern – Tigers','20:00','1 : 3')}
+      ${lRow('SA','Tigers – Lugano','18:30','—')}
+    </div>`,
+  'analytics:runs':()=>`
+    ${stitle('Analyse-Läufe')}
+    <div class="px-4 pb-5 space-y-1.5">
+      ${runRow('Lauf 142','EHC Genf · Vollanalyse','48/48','abgeschlossen')}
+      ${runRow('Lauf 143','SC Bern · Schnellmodus','22/30','läuft')}
+      ${runRow('Lauf 144','Lugano · Vollanalyse','0/52','wartet')}
+    </div>`,
+  'analytics:profile':()=>profScr('Sven Wisi','Analyst'),
+
+  'members:list':()=>`
+    ${stitle('Mitglieder')}
+    <div class="px-4">
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input placeholder="Name, E-Mail oder Rolle" class="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 v-accent-ring">
+        </div>
+        <button class="px-3 rounded-lg v-accent-bg text-white"><i class="bi bi-funnel"></i></button>
+      </div>
+    </div>
+    <div class="px-4 pb-5 mt-3 space-y-1.5">
+      ${mCard('Lena Brunner','@lbrunner','U17: Spielerin','aktiv')}
+      ${mCard('Marco Keller','@mkeller','U17: Coach · U15: Coach','aktiv')}
+      ${mCard('Anna Vogt','@avogt','Beantragt: U13 · Coach','ausstehend')}
+    </div>`,
+  'members:teams':()=>`
+    ${stitle('Teams')}
+    <div class="px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-5">
+      ${teamCard('U17 Elite','18 Mitglieder · 2 Coaches')}
+      ${teamCard('U15','16 Mitglieder · 2 Coaches')}
+      ${teamCard('U13','14 Mitglieder · 1 Coach')}
+    </div>`,
+  'members:me':()=>profScr('Sven Wisi','Mitglied · U17'),
+  'members:profile':()=>profScr('Sven Wisi','Kontoeinstellungen'),
+};
+
+// ---------- COMPONENT TEMPLATES (kompakt) ----------
+function aCard(n,ic,d,svc,b,bc){return `<button onclick="go('${svc}')" class="group text-left">
+    ${card('p-4 w-full hover:-translate-y-0.5 hover:shadow-lg transition cursor-pointer group-hover:border-slate-300 dark:group-hover:border-slate-600')}
+      <div class="flex items-center justify-between mb-3">
+        <div class="p-2.5 rounded-lg v-accent-bg-soft"><i class="bi ${ic} v-accent-text text-xl"></i></div>
+        ${chip(b,bc)}</div>
+      <h3 class="text-sm font-bold group-hover:v-accent-text transition">${n}</h3>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${d}</p>
+      <div class="mt-2 flex items-center text-xs font-semibold v-accent-text opacity-0 group-hover:opacity-100 transition">Öffnen <i class="bi bi-arrow-right ml-1"></i></div>
+    </div></button>`;}
+function feed(ic,t,m){return `${card('p-3 flex items-center gap-3')}
+  <div class="h-8 w-8 grid place-items-center rounded-lg v-accent-bg-soft v-accent-text shrink-0"><i class="bi ${ic}"></i></div>
+  <div class="min-w-0"><div class="text-sm font-semibold truncate">${t}</div><div class="text-xs text-slate-400">${m}</div></div></div>`;}
+function uRow(n,m,s,c){return `${card('p-3 flex items-center gap-3')}
+  <div class="h-8 w-8 grid place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-xs font-bold shrink-0">${n.split(' ').map(s=>s[0]).join('')}</div>
+  <div class="min-w-0 flex-1"><div class="text-sm font-semibold truncate">${n}</div><div class="text-xs text-slate-400 truncate">${m}</div></div>
+  ${chip(s,c)}<i class="bi bi-chevron-right text-slate-300"></i></div>`;}
+function tCard(t,w,a,co,bads){
+  const m={'indigo':'border-indigo-500','purple':'border-purple-500','yellow':'border-yellow-500','red':'border-red-500'};
+  const bm={'Geplant':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300','Einmalig':'bg-purple-100 dark:bg-purple-900/40 text-purple-700','Angepasst':'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700'};
+  return `${card('p-3 border-l-4 '+m[co]+' hover:-translate-y-0.5 hover:shadow-lg transition cursor-pointer')}
+    <div class="flex flex-wrap gap-1.5 mb-2">${bads.map(b=>chip(b,bm[b]||bm['Geplant'])).join('')}</div>
+    <h4 class="text-sm font-bold">${t}</h4>
+    <div class="mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400">
+      <div class="flex items-center gap-2"><i class="bi bi-clock v-accent-text"></i>${w}</div>
+      <div class="flex items-center gap-2"><i class="bi bi-list-task v-accent-text"></i>${a}</div>
+    </div></div>`;}
+function lRow(d,t,ti,m){return `${card('p-3 flex items-center gap-3 hover:shadow-md transition cursor-pointer')}
+  <div class="h-10 w-10 grid place-items-center rounded-lg v-accent-bg-soft v-accent-text text-xs font-bold shrink-0">${d}</div>
+  <div class="min-w-0 flex-1"><div class="text-sm font-semibold truncate">${t}</div><div class="text-xs text-slate-400">${m}</div></div>
+  <div class="text-sm font-semibold tabular-nums">${ti}</div></div>`;}
+function lRow2(t,d,st){
+  const ss={done:'opacity-60',active:'ring-2 v-accent-ring shadow-md',next:''};
+  const dot={done:'<i class="bi bi-check-circle-fill text-emerald-500"></i>',active:'<span class="grid place-items-center h-5 w-5 rounded-full v-accent-bg"><span class="h-2 w-2 bg-white rounded-full animate-ping"></span></span>',next:'<i class="bi bi-circle text-slate-300"></i>'};
+  return `${card('p-3 flex items-center gap-3 '+ss[st])}
+    ${dot[st]}<div class="flex-1 min-w-0"><div class="text-sm font-semibold ${st==='done'?'line-through':''}">${t}</div></div>
+    <span class="text-xs font-semibold text-slate-400">${d}</span></div>`;}
+// live rows in agenda use lRow2 internally via a wrapper
+const livemap={'done':0,'active':1,'next':2}; // placeholder for live state
+// Actually override lRow for live: detect if third arg is 'done'|'active'|'next'
+// We'll patch the SCREENS renderer directly - already uses lRow2 via redirect
+// Let's redefine lRow to handle the live case
+const origLRow=lRow;
+// We'll just use a direct call in agenda:live
+SCREENS['agenda:live']=()=>`
+  ${stitle('Live · U17 Athletik','Aktuelle Aktivität hervorgehoben')}
+  <div class="px-4 pb-5 space-y-1.5">
+    ${lRow2('10 Min','Warm-up Mobility','done')}
+    ${lRow2('15 Min','Sprint-Intervalle','active')}
+    ${lRow2('20 Min','Kraft Zirkel A','next')}
+    ${lRow2('10 Min','Cool-down','next')}
+  </div>`;
+function rRow(t,m,s){const c=s==='fertig'?'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700':'bg-amber-100 dark:bg-amber-900/40 text-amber-700';
+  return `${card('p-3 hover:shadow-md transition cursor-pointer')}
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0"><h4 class="text-sm font-bold truncate">${t}</h4><div class="text-xs text-slate-400 mt-0.5">${m}</div></div>
+      ${chip(s,c)}</div></div>`;}
+function runRow(id,meta,clips,status){
+  const c={'abgeschlossen':'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700','läuft':'bg-sky-100 dark:bg-sky-900/40 text-sky-700','wartet':'bg-slate-100 dark:bg-slate-700 text-slate-500'}[status];
+  const p=parseInt(clips)/parseInt(clips.split('/')[1])*100;
+  return `${card('p-3')}
+    <div class="flex items-center justify-between gap-2"><div><div class="text-sm font-bold">${id}</div><div class="text-xs text-slate-400">${meta}</div></div>${chip(status,c)}</div>
+    <div class="mt-2 flex items-center gap-2"><div class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full v-accent-bg" style="width:${p}%"></div></div><span class="text-xs tabular-nums text-slate-400">${clips}</span></div></div>`;}
+function mCard(n,h,r,s){const c=s==='aktiv'?'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700':'bg-amber-100 dark:bg-amber-900/40 text-amber-700';
+  return `${card('p-3 hover:shadow-md transition cursor-pointer')}
+    <div class="flex items-center gap-3">
+      <div class="h-9 w-9 grid place-items-center rounded-full v-accent-bg text-white text-xs font-bold shrink-0">${n.split(' ').map(s=>s[0]).join('')}</div>
+      <div class="min-w-0 flex-1"><div class="text-sm font-bold truncate">${n}</div><div class="text-xs text-slate-400">${h}</div></div>
+      ${chip(s,c)}</div>
+    <div class="mt-2 flex flex-wrap gap-1.5">${r.split(' · ').map(r=>chip(r,'v-accent-bg-soft v-accent-text')).join('')}</div></div>`;}
+function teamCard(n,m){return `${card('p-4 hover:-translate-y-0.5 hover:shadow-lg transition cursor-pointer')}
+  <div class="flex items-center justify-between mb-2"><div class="p-2 rounded-lg v-accent-bg-soft"><i class="bi bi-diagram-3 v-accent-text text-lg"></i></div><i class="bi bi-chevron-right text-slate-300"></i></div>
+  <h4 class="text-sm font-bold">${n}</h4><p class="text-xs text-slate-400 mt-0.5">${m}</p></div>`;}
+function profScr(n,r){return `
+  ${stitle('Profil')}
+  <div class="px-4 pb-5 space-y-2">
+    ${card('p-4 flex items-center gap-4')}
+      <div class="h-14 w-14 grid place-items-center rounded-xl v-accent-bg text-white text-lg font-bold">${n.split(' ').map(s=>s[0]).join('')}</div>
+      <div><div class="text-base font-bold">${n}</div><div class="text-sm v-accent-text font-semibold">${r}</div></div>
+    </div>
+    ${card('divide-y divide-slate-100 dark:divide-slate-800')}
+      ${prow('bi-palette','Design','Hell · Dunkel · System')}
+      ${prow('bi-bell','Benachrichtigungen','Push & E-Mail')}
+      ${prow('bi-shield-check','Sicherheit','Passwort')}
+      ${prow('bi-grid','Zur Plattform','Service wechseln')}
+    </div>
+    <button class="w-full py-2.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 font-semibold text-sm"><i class="bi bi-box-arrow-right mr-1"></i> Abmelden</button>
+  </div>`;}
+function prow(ic,t,s){return `<button class="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60">
+  <i class="bi ${ic} v-accent-text text-base w-5"></i><div class="flex-1"><div class="text-sm font-semibold">${t}</div><div class="text-xs text-slate-400">${s}</div></div><i class="bi bi-chevron-right text-slate-300"></i></button>`;}
+
+// ---------- RENDER ----------
+function render(){
+  const svc=services[state.service];
+  document.getElementById('appName').textContent=svc.name;
+  document.getElementById('appIcon').className='bi '+svc.iconBar+' text-sm v-accent-text';
+  if(!svc.tabs.find(t=>t.id===state.tab)) state.tab=svc.tabs[0].id;
+  document.getElementById('screens').innerHTML=(SCREENS[state.service+':'+state.tab]||(()=>'<div class="p-8 text-center text-slate-400">–</div>'))();
+  document.getElementById('tabbar').innerHTML=svc.tabs.map(t=>{
+    const on=t.id===state.tab;
+    return `<button onclick="setTab('${t.id}')" class="flex flex-col items-center gap-0.5 py-3 ${on?'v-accent-text':'text-slate-400'}">
+      <i class="bi ${t.icon} text-lg"></i><span class="text-[10px] font-semibold">${t.label}</span></button>`;
+  }).join('');
+}
+function setTab(t){state.tab=t;render();document.getElementById('screens').scrollIntoView({behavior:'smooth',block:'start'});}
+function go(svc){state.service=svc;state.tab=services[svc].tabs[0].id;render();}
+
+// Service cycle via bell
+function nextService(){
+  const o=['platform','agenda','analytics','members'];
+  state.service=o[(o.indexOf(state.service)+1)%o.length];
+  state.tab=services[state.service].tabs[0].id; render();
+}
+document.querySelector('header .bi-bell').parentElement.onclick=nextService;
+
+// ---------- INIT ----------
+setVariant(localStorage.getItem('mock_variant')||'a');
+setView(localStorage.getItem('mock_view')||'phone');
+render();
+</script>
+</body>
+</html>
