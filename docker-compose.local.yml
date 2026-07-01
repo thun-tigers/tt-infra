@@ -21,4 +21,4 @@ services:
 
   tt-attendance:
     ports:
-      - "${ATTENDANCE_PORT:-8088}:5000"
+      - "${ATTENDANCE_PORT:-8089}:5000"
