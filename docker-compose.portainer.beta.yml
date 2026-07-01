@@ -226,6 +226,8 @@ services:
         condition: service_healthy
       tt-postgres-attendance:
         condition: service_healthy
+    ports:
+      - "${TT_ATTENDANCE_HTTP_PORT:-6089}:5000"
     restart: unless-stopped
     networks:
       - tigers-internal
