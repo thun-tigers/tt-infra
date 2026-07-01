@@ -1,10 +1,10 @@
 services:
   tt-infra:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-infra:${TT_INFRA_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-infra:${TT_INFRA_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-sqlite:////app/instance/infra.db}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       AUTO_CREATE_DB: "true"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -22,24 +22,24 @@ services:
       start_period: 15s
 
   tt-auth:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-auth:${TT_AUTH_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-auth:${TT_AUTH_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${AUTH_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL:?set-production-auth-database-url}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-8}
-      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN}
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:?set-production-cookie-domain}
       JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-true}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       AUTO_CREATE_DB: "true"
       CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-false}
       CREATE_DEFAULT_SERVICES: "true"
-      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME}
-      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
-      DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL}
-      DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL}
-      DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL}
-      DEFAULT_ATTENDANCE_URL: ${DEFAULT_ATTENDANCE_URL}
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?set-production-admin-password}
+      DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL:?set-production-members-url}
+      DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL:?set-production-agenda-url}
+      DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL:?set-production-analytics-url}
+      DEFAULT_ATTENDANCE_URL: ${DEFAULT_ATTENDANCE_URL:?set-production-attendance-url}
       DEFAULT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       DEFAULT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       DEFAULT_ANALYTICS_INTERNAL_URL: http://tt-analytics:5000
@@ -69,12 +69,12 @@ services:
       start_period: 20s
 
   tt-members:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-members:${TT_MEMBERS_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-members:${TT_MEMBERS_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL}
-      AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-sqlite:////app/instance/members.db}
+      AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL:?set-production-members-auth-base-url}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
@@ -101,12 +101,12 @@ services:
       start_period: 20s
 
   tt-agenda:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-agenda:${TT_AGENDA_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-agenda:${TT_AGENDA_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${AGENDA_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
-      AUTH_BASE_URL: ${AGENDA_AUTH_BASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL:?set-production-agenda-database-url}
+      AUTH_BASE_URL: ${AGENDA_AUTH_BASE_URL:?set-production-agenda-auth-base-url}
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: tt-agenda
@@ -137,12 +137,12 @@ services:
       start_period: 20s
 
   tt-analytics:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-analytics:${TT_ANALYTICS_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-analytics:${TT_ANALYTICS_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
-      AUTH_BASE_URL: ${ANALYTICS_AUTH_BASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL:?set-production-analytics-database-url}
+      AUTH_BASE_URL: ${ANALYTICS_AUTH_BASE_URL:?set-production-analytics-auth-base-url}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: tt-analytics
       SSO_AUTO_PROVISION_USERS: ${ANALYTICS_SSO_AUTO_PROVISION_USERS:-true}
@@ -184,7 +184,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_ATTENDANCE_DB:-tt_attendance}
       POSTGRES_USER: ${POSTGRES_ATTENDANCE_USER:-tt_attendance}
-      POSTGRES_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD:?set-production-attendance-password}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-attendance-data:/var/lib/postgresql/data
@@ -198,12 +198,12 @@ services:
       - tigers-internal
 
   tt-attendance:
-    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-swisi}/tt-attendance:${TT_ATTENDANCE_IMAGE_TAG:?set-production-tag}
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-attendance:${TT_ATTENDANCE_IMAGE_TAG:?set-production-tag}
     pull_policy: always
     environment:
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:change-me@tt-postgres-attendance:5432/tt_attendance}
-      AUTH_BASE_URL: ${ATTENDANCE_AUTH_BASE_URL}
+      SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:?set-production-attendance-database-url}
+      AUTH_BASE_URL: ${ATTENDANCE_AUTH_BASE_URL:?set-production-attendance-auth-base-url}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
@@ -250,7 +250,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_AUTH_DB:-tt_auth}
       POSTGRES_USER: ${POSTGRES_AUTH_USER:-tt_auth}
-      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?set-production-auth-password}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
@@ -268,7 +268,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_AGENDA_DB:-tt_agenda}
       POSTGRES_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
-      POSTGRES_PASSWORD: ${POSTGRES_AGENDA_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_AGENDA_PASSWORD:?set-production-agenda-password}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-agenda-data:/var/lib/postgresql/data
@@ -286,7 +286,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_ANALYTICS_DB:-tt_analytics}
       POSTGRES_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
-      POSTGRES_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:?set-production-analytics-password}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-analytics-data:/var/lib/postgresql/data
