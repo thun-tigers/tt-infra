@@ -39,7 +39,7 @@ jobs:
               exit 1
             fi
 
-            for key in TT_INFRA_IMAGE_TAG TT_AUTH_IMAGE_TAG TT_MEMBERS_IMAGE_TAG TT_AGENDA_IMAGE_TAG TT_ANALYTICS_IMAGE_TAG; do
+            for key in TT_INFRA_IMAGE_TAG TT_AUTH_IMAGE_TAG TT_MEMBERS_IMAGE_TAG TT_AGENDA_IMAGE_TAG TT_ANALYTICS_IMAGE_TAG TT_ATTENDANCE_IMAGE_TAG; do
               value="$(grep -E "^${key}=" "${manifest}" | tail -n 1 | cut -d= -f2-)"
               if [[ "${value}" != "v${release_name}" ]]; then
                 echo "${manifest}: ${key} must be v${release_name}, got ${value}" >&2
@@ -51,11 +51,28 @@ jobs:
       - name: Render production compose for each release manifest
         shell: bash
         run: |
+          cat > /tmp/tt-infra-ci.env <<'EOF'
+          INFRA_SECRET_KEY=ci-placeholder-infra-secret
+          AUTH_SECRET_KEY=ci-placeholder-auth-secret
+          MEMBERS_SECRET_KEY=ci-placeholder-members-secret
+          AGENDA_SECRET_KEY=ci-placeholder-agenda-secret
+          ANALYTICS_SECRET_KEY=ci-placeholder-analytics-secret
+          ATTENDANCE_SECRET_KEY=ci-placeholder-attendance-secret
+          INTERNAL_API_SECRET=ci-placeholder-internal-api-secret
+          SSO_SHARED_SECRET=ci-placeholder-sso-shared-secret
+          DEFAULT_ADMIN_PASSWORD=ci-placeholder-admin-password
+          POSTGRES_AUTH_PASSWORD=ci-placeholder-postgres-auth-password
+          POSTGRES_AGENDA_PASSWORD=ci-placeholder-postgres-agenda-password
+          POSTGRES_ANALYTICS_PASSWORD=ci-placeholder-postgres-analytics-password
+          POSTGRES_ATTENDANCE_PASSWORD=ci-placeholder-postgres-attendance-password
+          EOF
+
           for manifest in releases/*.env; do
             echo "Validating ${manifest}"
             docker compose \
               --env-file .env.portainer.production.example \
               --env-file "${manifest}" \
+              --env-file /tmp/tt-infra-ci.env \
               -f docker-compose.portainer.production.yml \
               config > /dev/null
           done
