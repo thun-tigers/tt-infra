@@ -30,13 +30,15 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 
 - docker-compose.yml zentraler Compose-Stack
 - docker-compose.local.yml lokale Port-Freigaben fuer Entwicklung
-- docker-compose.edge.yml Edge-Variante mit Traefik und cloudflared
+- docker-compose.arcane.beta.yml Beta-Stack fuer Arcane plus Cloudflared Daemon
+- .env.arcane.beta Vorlage fuer den Arcane-Beta-Stack
 - .env.example Vorlage fuer lokale und serverseitige Umgebungsvariablen
 - docs/architecture.md Zielarchitektur und Standards
 - docs/stack-architecture.md detaillierte Plattform-Architektur
 - docs/operations.md Betriebs- und Deployment-Hinweise
 - docs/releases.md Release-Ablauf und Tagging
 - docs/cloudflare-tunnel.md aktives Tunnel- und Hostname-Setup
+- docs/beta-cloudflared-daemon.md Beta-Betrieb mit Arcane und Cloudflared Daemon
 - docs/data-migration.md Datenmigration von SQLite nach PostgreSQL
 
 ## Schnellstart
@@ -53,7 +55,6 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 - docker-compose.yml gemeinsamer Basis-Stack ohne oeffentliche App-Ports
 - docker-compose.local.yml lokaler Direktzugriff ueber localhost:8085/8086/8087/8088
-- docker-compose.edge.yml Ingress ueber Traefik plus cloudflared
 - docker-compose.beta.yml serverseitige Beta-Overrides (nicht im Repo versioniert)
 
 ## Versionierung und Releases
@@ -76,6 +77,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 Beispiel fuer den laufenden Beta-Stack:
 
+- beta.thun-tigers.net
 - auth-beta.thun-tigers.net
 - members-beta.thun-tigers.net
 - agenda-beta.thun-tigers.net
@@ -102,7 +104,7 @@ docker compose --env-file .env.beta \
 
 - Die Compose-Dateien verwenden fuer tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance relative Build-Pfade in benachbarte Repositories.
 - Feste `container_name`-Eintraege wurden bewusst entfernt, damit lokale und spaetere Deployment-Kontexte nicht aneinanderkoppeln.
-- Fuer Edge-Betrieb uebernimmt Cloudflare den externen Zugang, waehrend `cloudflared` den Traffic in den Stack bringt.
+- Fuer Beta-Betrieb uebernimmt der Cloudflared Daemon auf dem Server den externen Zugang.
 - Die fachlichen Services folgen alle demselben Login- und SSO-Startpunkt.
 - Wenn GHCR Pulls nicht verfuegbar sind, ist Source-Sync plus Build auf dem Server ein gueltiger Betriebsweg.
 

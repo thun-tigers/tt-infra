@@ -99,6 +99,14 @@ Empfohlenes Modell:
 - Portainer zieht fuer Beta immer die `beta`-Tags
 - Deploy der Stack-Datei direkt aus dem Git-Repository oder per Copy/Paste in Portainer
 
+### Arcane Beta mit Cloudflared Daemon
+
+Fuer den neuen Beta-Server mit Arcane und einem Cloudflared Daemon auf dem Host liegt eine eigene Anleitung bereit:
+
+- `docs/beta-cloudflared-daemon.md`
+
+Arcane ist dabei nur das Docker-Verwaltungswerkzeug und wird nicht oeffentlich geroutet. Der oeffentliche Einstieg ist `https://beta.thun-tigers.net`; Cloudflare Tunnel leitet die Beta-Domains auf die lokalen `608x`-Ports der Services.
+
 ### Portainer Produktion
 
 Fuer Produktion liegt ebenfalls eine image-basierte Compose-Datei bereit:
@@ -224,11 +232,10 @@ Bestandsnotiz:
 - historische Alt-Tags, insbesondere in `tt-agenda`, bleiben bestehen
 - ab diesem Standard ist die `VERSION`-Datei die einzige verbindliche Quelle fuer neue Releases
 
-## Reverse Proxy und Tunnel
+## Cloudflare Tunnel
 
 - Cloudflare bleibt der externe Edge-Layer fuer DNS, TLS, WAF und Tunnel-Terminierung.
-- `cloudflared` bringt den Traffic in den Docker-Stack.
-- Traefik bleibt intern sinnvoll und ist nicht doppelt: es uebernimmt Hostname-Routing, Docker-Service-Discovery und Ingress-Logik zwischen `tt-auth`, `tt-agenda`, `tt-analytics` und `tt-attendance`.
+- Der Cloudflared Daemon auf dem Server leitet die Beta-Hostnames auf die lokalen `608x`-Ports der Services.
 - Pfadbasiertes Routing wurde bewusst nicht als Standardmodell gewaehlt, weil die bestehenden Apps sauberer ueber eigene Subdomains betrieben werden koennen.
 
 ## Bekannte Betriebsnotiz
