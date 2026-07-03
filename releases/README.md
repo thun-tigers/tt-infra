@@ -1,6 +1,6 @@
 # Release Manifeste
 
-Dieses Verzeichnis pinnt freigegebene Plattform-Staende fuer Produktion.
+Dieses Verzeichnis pinnt freigegebene Plattform-Staende fuer deploybare Stacks.
 
 Grundsatz:
 
@@ -16,16 +16,16 @@ Verwendung mit Docker Compose:
 
 ```bash
 docker compose \
-  --env-file .env.production \
+  --env-file .env.arcane.beta \
   --env-file releases/0.1.0.env \
-  -f docker-compose.portainer.production.yml \
+  -f docker-compose.arcane.beta.yml \
   config
 ```
 
-Verwendung in Portainer:
+Verwendung in Arcane:
 
-- Stack-Datei: `docker-compose.portainer.production.yml`
-- Environment-Variablen aus der produktiven `.env` setzen
+- Stack-Datei: `docker-compose.arcane.beta.yml`
+- Environment-Variablen aus der Stack-`.env` setzen
 - zusaetzlich die Variablen aus dem gewuenschten Release-Manifest uebernehmen
 
 Konvention:

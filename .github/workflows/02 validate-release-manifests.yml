@@ -6,8 +6,8 @@ on:
     branches:
       - main
     paths:
-      - 'docker-compose.portainer.production.yml'
-      - '.env.portainer.production.example'
+      - 'docker-compose.arcane.beta.yml'
+      - '.env.arcane.beta'
       - 'releases/*.env'
       - '.github/workflows/02 validate-release-manifests.yml'
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
             done
           done
 
-      - name: Render production compose for each release manifest
+      - name: Render Arcane beta compose for each release manifest
         shell: bash
         run: |
           cat > /tmp/tt-infra-ci.env <<'EOF'
@@ -70,9 +70,9 @@ jobs:
           for manifest in releases/*.env; do
             echo "Validating ${manifest}"
             docker compose \
-              --env-file .env.portainer.production.example \
+              --env-file .env.arcane.beta \
               --env-file "${manifest}" \
               --env-file /tmp/tt-infra-ci.env \
-              -f docker-compose.portainer.production.yml \
+              -f docker-compose.arcane.beta.yml \
               config > /dev/null
           done
