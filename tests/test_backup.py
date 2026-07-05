@@ -118,6 +118,58 @@ def test_backup_download_and_restore_roundtrip(client, app, monkeypatch, tmp_pat
     assert analytics_upload_root.joinpath('clip.txt').read_text(encoding='utf-8') == 'analytics-before'
 
 
+def test_backup_restore_falls_back_when_pg_restore_hits_transaction_timeout(client, app, monkeypatch, tmp_path):
+    calls = []
+
+    def fake_run(command, capture_output, text, check, input=None):
+        calls.append((command, input))
+        if command[0] == 'pg_dump':
+            dump_path = Path(command[command.index('--file') + 1])
+            dump_path.parent.mkdir(parents=True, exist_ok=True)
+            dump_path.write_bytes(b'dump:data')
+            return type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})()
+        if command[0] == 'pg_restore' and '--dbname' in command:
+            return type(
+                'Result',
+                (),
+                {
+                    'returncode': 1,
+                    'stdout': '',
+                    'stderr': 'ERROR: unrecognized configuration parameter "transaction_timeout"',
+                },
+            )()
+        if command[0] == 'pg_restore' and '--file' in command:
+            return type('Result', (), {'returncode': 0, 'stdout': 'SET transaction_timeout = 0;\nSELECT 1;\n', 'stderr': ''})()
+        if command[0] == 'psql':
+            assert input == 'SELECT 1;\n'
+            return type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})()
+        raise AssertionError(f'Unexpected command: {command}')
+
+    monkeypatch.setattr('app.routes.backup.subprocess.run', fake_run)
+    _login_admin(client, app)
+
+    members_dir = Path(app.config['MEMBERS_INSTANCE_DIR'])
+    analytics_upload_root = Path(app.config['ANALYTICS_UPLOAD_ROOT'])
+    infra_db_path = Path(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''))
+
+    _prepare_sqlite_db(infra_db_path, 'infra-before')
+    members_dir.joinpath('uploads').mkdir(parents=True, exist_ok=True)
+    analytics_upload_root.mkdir(parents=True, exist_ok=True)
+
+    response = client.get('/backup/download')
+    assert response.status_code == 200
+
+    restore_file = tmp_path / 'restore.tar.gz'
+    restore_file.write_bytes(response.data)
+
+    with restore_file.open('rb') as handle:
+        data = {'backup_file': (handle, 'restore.tar.gz'), 'confirm_restore': 'yes'}
+        restore_response = client.post('/backup/restore', data=data, content_type='multipart/form-data')
+
+    assert restore_response.status_code == 302
+    assert any(command[0] == 'psql' for command, _ in calls)
+
+
 def test_backup_download_fails_when_a_required_source_is_missing(client, app, monkeypatch):
     from app.routes import backup as backup_routes
 

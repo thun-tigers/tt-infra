@@ -95,7 +95,37 @@ def _pg_restore_from_file(database_url, archive_path):
         check=False,
     )
     if result.returncode != 0:
-        return False, result.stderr.strip() or result.stdout.strip() or 'pg_restore fehlgeschlagen.'
+        error_text = result.stderr.strip() or result.stdout.strip() or 'pg_restore fehlgeschlagen.'
+        if 'transaction_timeout' in error_text:
+            script_result = subprocess.run(
+                ['pg_restore', '--clean', '--if-exists', '--no-owner', '--no-acl', '--file', '-', str(archive_path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if script_result.returncode != 0:
+                fallback_error = script_result.stderr.strip() or script_result.stdout.strip() or 'pg_restore fallback fehlgeschlagen.'
+                return False, f'{error_text}; fallback: {fallback_error}'
+
+            filtered_script = '\n'.join(
+                line for line in script_result.stdout.splitlines()
+                if line.strip() != 'SET transaction_timeout = 0;'
+            )
+            if filtered_script and not filtered_script.endswith('\n'):
+                filtered_script += '\n'
+
+            psql_result = subprocess.run(
+                ['psql', '--set', 'ON_ERROR_STOP=1', '--dbname', dsn],
+                input=filtered_script,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if psql_result.returncode != 0:
+                fallback_error = psql_result.stderr.strip() or psql_result.stdout.strip() or 'psql fallback fehlgeschlagen.'
+                return False, f'{error_text}; fallback: {fallback_error}'
+            return True, None
+        return False, error_text
     return True, None
 
 
@@ -247,7 +277,7 @@ def _build_backup_archive():
 
 def _restore_from_archive(archive_path):
     workdir = Path(tempfile.mkdtemp(prefix='tt-infra-restore-'))
-    with tarfile.open(archive_path, 'r:gz') as archive:
+    with tarfile.open(archive_path, 'r:*') as archive:
         archive.extractall(workdir, filter='data')
 
     payload_root = workdir / 'payload'

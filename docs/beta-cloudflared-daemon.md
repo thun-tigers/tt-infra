@@ -19,6 +19,10 @@ attendance-beta.thun-tigers.net  -> http://host.docker.internal:6089
 
 Die Compose-Datei bindet diese Ports standardmaessig auf `172.17.0.1`, also die Docker-Bridge-IP, die `host.docker.internal` im Cloudflared-Container erreicht. Wenn Cloudflared wirklich als Host-Daemon ohne Container laeuft, kann `TT_HOST_BIND_IP=127.0.0.1` gesetzt und in Cloudflare Tunnel `http://localhost:608x` verwendet werden.
 
+`tt-infra` braucht fuer SSO-Redirects `AUTH_BASE_URL=https://beta.thun-tigers.net`. Ohne diese Variable faellt der Login-Redirect auf den Default `http://localhost:8085` zurueck und der Browser landet in einer nicht erreichbaren Adresse.
+
+Fuer manuelle Backups braucht `tt-infra` die Datenvolumes der anderen Services als Quellen. In der Beta-Compose werden `tt-members-data` und `analytics-uploads-data` deshalb in `tt-infra` auf `/backup-sources/tt-members-instance` und `/backup-sources/tt-analytics-uploads` gemountet.
+
 ## Arcane
 
 Arcane braucht keinen oeffentlichen Hostname. Auf dem Server ist Arcane idealerweise nur lokal gebunden:
@@ -57,6 +61,17 @@ docker compose --env-file .env.arcane.beta \
   -f docker-compose.arcane.beta.yml \
   up -d
 ```
+
+Wenn Arcane nur eine einzige Env-Datei akzeptiert, wird vor dem Import eine kombinierte Datei erzeugt:
+
+```bash
+python scripts/render_arcane_env.py \
+  --base .env.arcane.beta \
+  --overlay releases/0.1.5.env \
+  --output .env.arcane.beta.v0.1.5
+```
+
+Danach zeigt Arcane auf `.env.arcane.beta.v0.1.5` statt auf zwei getrennte Dateien.
 
 Status:
 
