@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from flask import Flask
 from sqlalchemy import inspect, text
@@ -31,7 +32,13 @@ def create_app(config_class=Config):
     db.init_app(app)
 
     from .routes.api import bp as api_bp
+    from .routes.auth import bp as auth_bp
+    from .routes.admin import bp as admin_bp
+    from .routes.backup import bp as backup_bp
     app.register_blueprint(api_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(backup_bp)
 
     @app.context_processor
     def inject_version():
@@ -42,6 +49,9 @@ def create_app(config_class=Config):
             db.create_all()
             _ensure_schema()
             _seed_defaults()
+
+        Path(app.config.get('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance')).mkdir(parents=True, exist_ok=True)
+        Path(app.config.get('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads')).mkdir(parents=True, exist_ok=True)
 
     return app
 

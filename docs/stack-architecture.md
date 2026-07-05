@@ -14,7 +14,7 @@ Bereits umgesetzt:
 - `tt-agenda` validiert dieses Token unter `/auth/sso`
 - `tt-attendance` verwendet den gleichen SSO-Flow
 - alle drei Anwendungen sind als eigenstaendige Docker-Container vorbereitet
-- alle drei Anwendungen verwenden aktuell SQLite
+- die Anwendungen sind inzwischen auf Postgres umgestellt
 
 Damit ist die richtige Richtung schon angelegt. Fuer einen sauberen Ausbau sollte `tt-auth` zum zentralen Identity- und Access-Service werden, waehrend `tt-agenda`, `tt-attendance` und spaeter `tt-analytics` fachliche Microservices bleiben.
 
@@ -310,7 +310,7 @@ Umbauen:
 
 Wichtig:
 
-In `tt-agenda` gibt es aktuell Backup/Restore-Code mit direkter SQLite-Kopierlogik. Das ist einer der groessten Stellen, die bei der Postgres-Migration fachlich angepasst werden muessen.
+In `tt-agenda` gibt es inzwischen nur noch Hinweise auf den zentralen Backup-Workflow in `tt-infra`; die direkte SQLite-Kopierlogik ist entfernt.
 
 ### `tt-analytics`
 
@@ -340,8 +340,8 @@ Ich wuerde `tt-analytics` von Anfang an so aufsetzen, dass es:
 
 - die betroffenen Repositories auf `SQLALCHEMY_DATABASE_URI` per ENV umstellen
 - Postgres lokal per Docker einhaengen
-- SQLite-Daten migrieren
-- SQLite-spezifische Admin- und Backup-Logik aus `tt-agenda` ersetzen
+- alte SQLite-Reste aus den Migrationsskripten ausmustern
+- zentrale Backup- und Restore-Logik für Postgres weiter vereinheitlichen
 
 ### Phase 3
 

@@ -6,19 +6,50 @@ services:
       - "8084:5000"
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY:-tt-infra-dev-secret}
-      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-sqlite:////app/instance/infra.db}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres-infra:5432/tt_infra}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
+      MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres-auth:5432/tt_auth}
+      AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:tt_agenda_password@tt-postgres-agenda:5432/tt_agenda}
+      ATTENDANCE_DATABASE_URL: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres-attendance:5432/tt_attendance}
+      ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL:-postgresql+psycopg://tt_analytics:tt_analytics_password@tt-postgres-analytics:5432/tt_analytics}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-tt-internal-dev-secret-change-me}
       AUTO_CREATE_DB: "true"
       LOG_LEVEL: INFO
       TZ: ${TZ:-Europe/Zurich}
+      MEMBERS_INSTANCE_DIR: /backup-sources/tt-members-instance
+      ANALYTICS_UPLOAD_ROOT: /backup-sources/tt-analytics-uploads
     volumes:
       - tt-infra-data:/app/instance
+      - tt-members-data:/backup-sources/tt-members-instance
+      - analytics-uploads-data:/backup-sources/tt-analytics-uploads
+    depends_on:
+      tt-postgres-infra:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/api/health').status == 200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-infra:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra}
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
+      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:-tt_infra_password}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-infra-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
     networks:
       - tigers-internal
@@ -44,6 +75,7 @@ services:
       DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL:-http://localhost:8088}
       DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL:-http://localhost:8086}
       DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL:-http://localhost:8087}
+      DEFAULT_INFRA_URL: ${DEFAULT_INFRA_URL:-http://localhost:8084}
       DEFAULT_MEMBERS_INTERNAL_URL: ${DEFAULT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       DEFAULT_AGENDA_INTERNAL_URL: ${DEFAULT_AGENDA_INTERNAL_URL:-http://tt-agenda:5000}
       DEFAULT_ANALYTICS_INTERNAL_URL: ${DEFAULT_ANALYTICS_INTERNAL_URL:-http://tt-analytics:5000}
@@ -78,7 +110,7 @@ services:
       - "8088:5000"
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY:-tt-members-dev-secret}
-      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-sqlite:////app/instance/members.db}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members}
       AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL:-http://localhost:8085}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
@@ -94,12 +126,32 @@ services:
         condition: service_healthy
       tt-infra:
         condition: service_healthy
+      tt-postgres-members:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-members:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_MEMBERS_DB:-tt_members}
+      POSTGRES_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
+      POSTGRES_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:-tt_members_password}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-members-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MEMBERS_USER:-tt_members} -d ${POSTGRES_MEMBERS_DB:-tt_members}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
     networks:
       - tigers-internal
@@ -316,7 +368,9 @@ volumes:
   tt-members-data:
     external: true
     name: tt-members_tt-members-data
+  postgres-infra-data:
   postgres-auth-data:
+  postgres-members-data:
   postgres-agenda-data:
   postgres-attendance-data:
   postgres-analytics-data:

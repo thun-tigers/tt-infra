@@ -4,13 +4,18 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-sqlite:////app/instance/infra.db}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:${POSTGRES_INFRA_PASSWORD:-BetaInfraDb123!}@tt-postgres-infra:5432/tt_infra_beta}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:-BetaMembersDb123!}@tt-postgres-members:5432/tt_members_beta}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       AUTO_CREATE_DB: "true"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - tt-infra-data:/app/instance
+    depends_on:
+      tt-postgres-infra:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - tigers-internal
@@ -20,6 +25,42 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  tt-postgres-infra:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
+      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:-BetaInfraDb123!}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-infra-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-infra:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
+      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:-BetaInfraDb123!}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-infra-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
 
   tt-auth:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-auth:${TT_AUTH_IMAGE_TAG:-beta}
@@ -39,6 +80,7 @@ services:
       DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL:-https://members-beta.thun-tigers.net}
       DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL:-https://agenda-beta.thun-tigers.net}
       DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL:-https://analytics-beta.thun-tigers.net}
+      DEFAULT_INFRA_URL: ${DEFAULT_INFRA_URL:-http://localhost:8084}
       DEFAULT_ATTENDANCE_URL: ${DEFAULT_ATTENDANCE_URL:-https://attendance-beta.thun-tigers.net}
       DEFAULT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       DEFAULT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
@@ -72,7 +114,7 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY}
-      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-sqlite:////app/instance/members.db}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:-BetaMembersDb123!}@tt-postgres-members:5432/tt_members_beta}
       AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL:-https://beta.thun-tigers.net}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
@@ -87,6 +129,10 @@ services:
       tt-auth:
         condition: service_healthy
       tt-infra:
+        condition: service_healthy
+      tt-postgres-members:
+        condition: service_healthy
+      tt-postgres-members:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -227,6 +273,42 @@ services:
     networks:
       - tigers-internal
 
+  tt-postgres-members:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_MEMBERS_DB:-tt_members_beta}
+      POSTGRES_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
+      POSTGRES_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:-BetaMembersDb123!}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-members-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MEMBERS_USER:-tt_members} -d ${POSTGRES_MEMBERS_DB:-tt_members_beta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-postgres-members:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_MEMBERS_DB:-tt_members_beta}
+      POSTGRES_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
+      POSTGRES_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:-BetaMembersDb123!}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-members-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MEMBERS_USER:-tt_members} -d ${POSTGRES_MEMBERS_DB:-tt_members_beta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
   tt-postgres-agenda:
     image: postgres:16
     environment:
@@ -304,8 +386,12 @@ volumes:
     name: tigers-beta-tt-infra-data
   tt-members-data:
     name: tigers-beta-tt-members-data
+  postgres-infra-data:
+    name: tigers-beta-postgres-infra-data
   postgres-auth-data:
     name: tigers-beta-postgres-auth-data
+  postgres-members-data:
+    name: tigers-beta-postgres-members-data
   postgres-agenda-data:
     name: tigers-beta-postgres-agenda-data
   postgres-attendance-data:
