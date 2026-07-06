@@ -106,6 +106,7 @@ services:
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:-BetaMembersDb123!}@tt-postgres-members:5432/tt_members_beta}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL:-https://beta.thun-tigers.net}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000

@@ -67,11 +67,11 @@ Wenn Arcane nur eine einzige Env-Datei akzeptiert, wird vor dem Import eine komb
 ```bash
 python scripts/render_arcane_env.py \
   --base .env.arcane.beta \
-  --overlay releases/0.1.5.env \
-  --output .env.arcane.beta.v0.1.5
+  --overlay releases/0.1.6.env \
+  --output .env.arcane.beta.v0.1.6
 ```
 
-Danach zeigt Arcane auf `.env.arcane.beta.v0.1.5` statt auf zwei getrennte Dateien.
+Danach zeigt Arcane auf `.env.arcane.beta.v0.1.6` statt auf zwei getrennte Dateien.
 
 Status:
 
