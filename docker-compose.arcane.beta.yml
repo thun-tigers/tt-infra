@@ -351,8 +351,6 @@ services:
 networks:
   tigers-internal:
     name: tigers-beta-internal
-  tigers-edge:
-    name: tigers-beta-edge
 
 volumes:
   tt-infra-data:
