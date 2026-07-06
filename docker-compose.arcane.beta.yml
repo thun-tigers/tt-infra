@@ -1,7 +1,7 @@
 services:
   tt-infra:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-infra:${TT_INFRA_IMAGE_TAG:-beta}
-    pull_policy: missing
+    pull_policy: always
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:${POSTGRES_INFRA_PASSWORD:-BetaInfraDb123!}@tt-postgres-infra:5432/tt_infra_beta}
@@ -162,7 +162,7 @@ services:
     networks:
       - tigers-internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; exit(0 if urlopen('http://localhost:5000/health').status==200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -204,7 +204,7 @@ services:
     networks:
       - tigers-internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; exit(0 if urlopen('http://localhost:5000/health').status==200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -351,6 +351,8 @@ services:
 networks:
   tigers-internal:
     name: tigers-beta-internal
+  tigers-edge:
+    name: tigers-beta-edge
 
 volumes:
   tt-infra-data:
