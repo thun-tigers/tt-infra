@@ -53,7 +53,12 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_version():
-        return {'infra_service_name': 'tt-infra'}
+        auth_base_url = app.config.get('AUTH_BASE_URL', 'http://localhost:8085').rstrip('/')
+        return {
+            'infra_service_name': 'tt-infra',
+            'auth_base_url': auth_base_url,
+            'auth_dashboard_url': f'{auth_base_url}/',
+        }
 
     with app.app_context():
         if app.config.get('AUTO_CREATE_DB', True):
