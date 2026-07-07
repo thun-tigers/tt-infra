@@ -59,6 +59,15 @@ def logout():
     return redirect(get_auth_logout_url())
 ```
 
+**Single-Use-SSO-Tokens (Replay-Schutz):**  
+tt-auth versieht jedes SSO-Token mit einer eindeutigen `jti`-Claim. Jeder Microservice prüft beim Einlösen unter `/auth/sso`, ob die `jti` bereits verwendet wurde (Redis `SET NX` mit TTL, Modul `app/sso_replay.py`). Die Redis-URI kommt aus `SSO_REPLAY_STORAGE_URI` (im Compose-Stack `redis://tt-redis:6379/3`). Der Check ist fail-open: ohne konfigurierte URI oder bei Redis-Ausfall wird das Token akzeptiert — der Schutz ergänzt die kurze Token-TTL, ersetzt sie aber nicht.
+
+```python
+if is_replayed_sso_token(payload):
+    flash('SSO-Token wurde bereits verwendet. Bitte erneut anmelden.', 'danger')
+    return redirect(url_for('auth.login'))
+```
+
 **SSO User-Sync (Upsert statt Insert):**  
 Beim SSO-Login darf ein Microservice nicht blind einen neuen Benutzer anlegen. Zuerst muss per `auth_user_id` gesucht werden. Falls kein Treffer, muss als Fallback per `username` gesucht werden (z. B. nach Löschung und Neuregistrierung in tt-auth). Nur wenn auch kein Username-Treffer vorliegt, wird ein neuer Datensatz angelegt.
 

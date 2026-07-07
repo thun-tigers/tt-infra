@@ -119,6 +119,7 @@ services:
       SSO_EXPECTED_AUDIENCE: ${MEMBERS_SSO_EXPECTED_AUDIENCE:-tt-members}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-tt-internal-dev-secret-change-me}
       RATELIMIT_STORAGE_URI: memory://
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - tt-members-data:/app/instance
@@ -128,6 +129,8 @@ services:
       tt-infra:
         condition: service_healthy
       tt-postgres-members:
+        condition: service_healthy
+      tt-redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
@@ -176,6 +179,7 @@ services:
       WEBHOOK_ENABLED: ${AGENDA_WEBHOOK_ENABLED:-false}
       WEBHOOK_URL: ${AGENDA_WEBHOOK_URL}
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/1
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
       LOG_LEVEL: INFO
       TZ: ${TZ:-Europe/Zurich}
     depends_on:
@@ -220,6 +224,7 @@ services:
       GEMINI_RETRY_BUFFER_SECONDS: ${ANALYTICS_GEMINI_RETRY_BUFFER_SECONDS:-5}
       GEMINI_RETRY_DEFAULT_SECONDS: ${ANALYTICS_GEMINI_RETRY_DEFAULT_SECONDS:-60}
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/2
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - analytics-uploads-data:/app/instance/uploads
@@ -323,6 +328,7 @@ services:
       SSO_EXPECTED_AUDIENCE: ${ATTENDANCE_SSO_EXPECTED_AUDIENCE:-tt-attendance}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-tt-internal-dev-secret-change-me}
       RATELIMIT_STORAGE_URI: memory://
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
       LOG_LEVEL: INFO
       TZ: ${TZ:-Europe/Zurich}
     depends_on:
@@ -331,6 +337,8 @@ services:
       tt-agenda:
         condition: service_healthy
       tt-postgres-attendance:
+        condition: service_healthy
+      tt-redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]

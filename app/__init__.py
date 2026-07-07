@@ -51,6 +51,16 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
     app.register_blueprint(backup_bp)
 
+    # Zentrales UI-Layout aus tt-common
+    from tt_common import register_shared_ui
+    register_shared_ui(
+        app,
+        brand_label='Infra',
+        brand_icon='bi-hdd-network',
+        home_endpoint='admin.index',
+        logout_endpoint='auth.logout',
+    )
+
     @app.context_processor
     def inject_version():
         auth_base_url = app.config.get('AUTH_BASE_URL', 'http://localhost:8085').rstrip('/')
@@ -58,6 +68,10 @@ def create_app(config_class=Config):
             'infra_service_name': 'tt-infra',
             'auth_base_url': auth_base_url,
             'auth_dashboard_url': f'{auth_base_url}/',
+            # tt-infra ist ausschliesslich hinter tt-auth erreichbar und kennt
+            # keinen eigenen Login-Zustand; das geteilte Layout gated aber auf
+            # current_user, daher hier konstant gesetzt (Header immer sichtbar).
+            'current_user': {'username': 'admin', 'role': 'admin'},
         }
 
     with app.app_context():
