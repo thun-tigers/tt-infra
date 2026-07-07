@@ -31,8 +31,12 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 - docker-compose.yml zentraler Compose-Stack
 - docker-compose.local.yml lokale Port-Freigaben fuer Entwicklung
 - docker-compose.arcane.beta.yml Beta-Stack fuer Arcane plus Cloudflared Daemon
-- .env.arcane.beta Vorlage fuer den Arcane-Beta-Stack
-- .env.example Vorlage fuer lokale und serverseitige Umgebungsvariablen
+- platform_config.py zentrale Quelle fuer die Platform-Profile
+- app/routes/config.py Konfigurationsoberflaeche fuer die aktuelle Umgebung und Exporte
+- app/templates/config/ UI fuer die laufende Umgebung
+- scripts/render_platform_env.py Generator fuer `.env`-Dateien und Release-Manifeste
+- .env.arcane.beta aus der zentralen Konfiguration gerendert
+- .env.example aus der zentralen Konfiguration gerendert
 - docs/architecture.md Zielarchitektur und Standards
 - docs/stack-architecture.md detaillierte Plattform-Architektur
 - docs/operations.md Betriebs- und Deployment-Hinweise
@@ -44,7 +48,7 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 ## Schnellstart
 
 1. Repositories tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance lokal neben dieses Repo legen.
-2. .env.example nach .env kopieren und Werte setzen.
+2. `.env.example` aus `scripts/render_platform_env.py` erzeugen und nach `.env` kopieren.
 3. Stack starten.
 
 ```bash
@@ -55,7 +59,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 - docker-compose.yml gemeinsamer Basis-Stack ohne oeffentliche App-Ports
 - docker-compose.local.yml lokaler Direktzugriff ueber localhost:8085/8086/8087/8088
-- docker-compose.beta.yml serverseitige Beta-Overrides (nicht im Repo versioniert)
+- docker-compose.arcane.beta.yml serverseitiger Beta-Stack fuer Arcane plus Cloudflared Daemon
 
 ## Versionierung und Releases
 
@@ -65,10 +69,12 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 - Produktion verwendet pro Service feste Release-Tags
 - `tt-infra` dokumentiert und pinnt die Kombination der freigegebenen Service-Versionen
 - freigegebene Produktionsstaende liegen als Release-Manifeste unter `releases/*.env`
+- Release- und Env-Dateien werden aus `platform_config.py` und `scripts/render_platform_env.py` generiert
 
 ### Lokal auf dem Entwickler-Laptop
 
 ```bash
+python scripts/render_platform_env.py render-env --profile local > .env.example
 cp .env.example .env
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
@@ -90,13 +96,13 @@ Alle fachlichen Services verwenden denselben Einstieg:
 - `tt-auth` startet den SSO-Flow
 - der Service nimmt das Token unter `/auth/sso` an und springt danach auf `/`
 
-Start auf Server (mit vorhandener .env.beta):
+Start auf Server (mit vorhandener .env.arcane.beta):
 
 ```bash
-docker compose --env-file .env.beta \
+docker compose --env-file .env.arcane.beta \
 	-f docker-compose.yml \
 	-f docker-compose.local.yml \
-	-f docker-compose.beta.yml \
+	-f docker-compose.arcane.beta.yml \
 	up -d --build
 ```
 
@@ -104,6 +110,7 @@ docker compose --env-file .env.beta \
 
 - Die Compose-Dateien verwenden fuer tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance relative Build-Pfade in benachbarte Repositories.
 - Feste `container_name`-Eintraege wurden bewusst entfernt, damit lokale und spaetere Deployment-Kontexte nicht aneinanderkoppeln.
+- Die Konfiguration laesst sich in `tt-infra` ueber `Admin -> Konfig` fuer die aktive Umgebung einsehen, bearbeiten und als `.env` exportieren.
 - Fuer Beta-Betrieb uebernimmt der Cloudflared Daemon auf dem Server den externen Zugang.
 - Die fachlichen Services folgen alle demselben Login- und SSO-Startpunkt.
 - Wenn GHCR Pulls nicht verfuegbar sind, ist Source-Sync plus Build auf dem Server ein gueltiger Betriebsweg.
@@ -111,5 +118,6 @@ docker compose --env-file .env.beta \
 ## Produktions-Releases
 
 - `releases/0.1.0.env` ist der erste zentrale Plattform-Release
+- `releases/0.1.8.env` ist der aktuelle freigegebene Plattform-Stand
 - die Datei pinnt die freigegebenen Image-Tags fuer `tt-infra`, `tt-auth`, `tt-members`, `tt-agenda`, `tt-analytics` und `tt-attendance`
 - die produktive Secret-Datei bleibt getrennt; das Release-Manifest liefert nur die Tag-Auswahl

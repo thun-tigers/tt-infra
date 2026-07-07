@@ -67,11 +67,11 @@ Wenn Arcane nur eine einzige Env-Datei akzeptiert, wird vor dem Import eine komb
 ```bash
 python scripts/render_arcane_env.py \
   --base .env.arcane.beta \
-  --overlay releases/0.1.6.env \
-  --output .env.arcane.beta.v0.1.6
+  --overlay releases/0.1.8.env \
+  --output .env.arcane.beta.v0.1.8
 ```
 
-Danach zeigt Arcane auf `.env.arcane.beta.v0.1.6` statt auf zwei getrennte Dateien.
+Danach zeigt Arcane auf `.env.arcane.beta.v0.1.8` statt auf zwei getrennte Dateien.
 
 Status:
 
@@ -95,10 +95,7 @@ DEFAULT_AGENDA_URL=https://agenda-beta.thun-tigers.net
 DEFAULT_ANALYTICS_URL=https://analytics-beta.thun-tigers.net
 DEFAULT_ATTENDANCE_URL=https://attendance-beta.thun-tigers.net
 
-MEMBERS_AUTH_BASE_URL=https://beta.thun-tigers.net
-AGENDA_AUTH_BASE_URL=https://beta.thun-tigers.net
-ANALYTICS_AUTH_BASE_URL=https://beta.thun-tigers.net
-ATTENDANCE_AUTH_BASE_URL=https://beta.thun-tigers.net
+AUTH_BASE_URL=https://beta.thun-tigers.net
 ```
 
 `SSO_SHARED_SECRET` muss in allen Services identisch sein. `INTERNAL_API_SECRET` muss ebenfalls stackweit gleich sein.

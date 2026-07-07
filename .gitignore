@@ -6,4 +6,5 @@ __pycache__/
 *.pyc
 migration-archive/
 instance/
-.env.arcane.beta.v0.1.5
+.env.arcane.beta.v*
+.env.arcane.local.v*

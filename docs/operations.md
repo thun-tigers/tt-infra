@@ -31,6 +31,7 @@ tigers/
 - tt-auth, tt-agenda, tt-attendance und tt-analytics nutzen jeweils eigene Postgres-Datenbanken.
 - tt-members, tt-analytics und tt-attendance sind fester Bestandteil des Standard-Stacks.
 - JWT_COOKIE_DOMAIN muss je Umgebung korrekt gesetzt sein (Beta: .thun-tigers.net).
+- Die zentrale Konfigurationsoberflaeche befindet sich in `tt-infra` unter `Admin -> Konfig` und gilt immer fuer die aktive Umgebung.
 
 ## Persistenz und Backups
 
@@ -62,27 +63,27 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 Voraussetzungen:
 
-- .env.beta ist vorhanden
-- docker-compose.beta.yml ist vorhanden
+- .env.arcane.beta ist vorhanden
+- docker-compose.arcane.beta.yml ist vorhanden
 - Quellcode der Services liegt auf dem Server in benachbarten Verzeichnissen
 
 Start oder Update:
 
 ```bash
-docker compose --env-file .env.beta \
+docker compose --env-file .env.arcane.beta \
   -f docker-compose.yml \
   -f docker-compose.local.yml \
-  -f docker-compose.beta.yml \
+  -f docker-compose.arcane.beta.yml \
   up -d --build
 ```
 
 Status pruefen:
 
 ```bash
-docker compose --env-file .env.beta \
+docker compose --env-file .env.arcane.beta \
   -f docker-compose.yml \
   -f docker-compose.local.yml \
-  -f docker-compose.beta.yml \
+  -f docker-compose.arcane.beta.yml \
   ps
 ```
 

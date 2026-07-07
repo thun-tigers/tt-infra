@@ -8,6 +8,7 @@ from sqlalchemy import inspect, text
 from .config import Config
 from .extensions import db
 from .models import PositionGroup
+from platform_config import detect_profile, load_profile_store, profile_values, save_profile_store
 
 
 POSITION_GROUP_DEFAULTS = [
@@ -25,6 +26,8 @@ POSITION_GROUP_DEFAULTS = [
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.config['TT_CONFIG_PROFILE'] = detect_profile(os.environ)
+    app.config['TT_CONFIG_STORE_PATH'] = str(Path(app.instance_path) / 'platform-config.json')
 
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO').upper(), logging.INFO)
     formatter = logging.Formatter('[%(asctime)s +0000] [%(process)d] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -45,10 +48,12 @@ def create_app(config_class=Config):
     from .routes.api import bp as api_bp
     from .routes.auth import bp as auth_bp
     from .routes.admin import bp as admin_bp
+    from .routes.config import bp as config_bp
     from .routes.backup import bp as backup_bp
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(config_bp)
     app.register_blueprint(backup_bp)
 
     # Zentrales UI-Layout aus tt-common
@@ -71,10 +76,27 @@ def create_app(config_class=Config):
             # tt-infra ist ausschliesslich hinter tt-auth erreichbar und kennt
             # keinen eigenen Login-Zustand; das geteilte Layout gated aber auf
             # current_user, daher hier konstant gesetzt (Header immer sichtbar).
-            'current_user': {'username': 'admin', 'role': 'admin'},
+            'current_user': {
+                'username': 'admin',
+                'display_name': 'Admin',
+                'role': 'admin',
+                'platform_role': 'admin',
+                'service_role': 'admin',
+            },
+            'pending_messages_count': 0,
         }
 
     with app.app_context():
+        store_path = Path(app.config['TT_CONFIG_STORE_PATH'])
+        store = load_profile_store(store_path)
+        if not store_path.exists():
+            save_profile_store(store_path, store)
+        active_profile = app.config['TT_CONFIG_PROFILE']
+        app.config.update(profile_values(active_profile, overrides=store.get(active_profile, {})))
+        if os.environ.get('MEMBERS_INSTANCE_DIR'):
+            app.config['MEMBERS_INSTANCE_DIR'] = os.environ['MEMBERS_INSTANCE_DIR']
+        if os.environ.get('ANALYTICS_UPLOAD_ROOT'):
+            app.config['ANALYTICS_UPLOAD_ROOT'] = os.environ['ANALYTICS_UPLOAD_ROOT']
         if app.config.get('AUTO_CREATE_DB', True):
             db.create_all()
             _ensure_schema()

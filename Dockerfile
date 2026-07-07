@@ -4,6 +4,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     curl \
+    git \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 

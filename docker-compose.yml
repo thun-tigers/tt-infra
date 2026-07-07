@@ -7,6 +7,7 @@ services:
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY:-tt-infra-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres-infra:5432/tt_infra}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
       MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members}
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres-auth:5432/tt_auth}
@@ -112,7 +113,7 @@ services:
       SECRET_KEY: ${MEMBERS_SECRET_KEY:-tt-members-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members}
       LOG_LEVEL: INFO
-      AUTH_BASE_URL: ${MEMBERS_AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
@@ -169,7 +170,7 @@ services:
     environment:
       SECRET_KEY: ${AGENDA_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
-      AUTH_BASE_URL: ${AGENDA_AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: ${AGENDA_SSO_EXPECTED_AUDIENCE:-tt-agenda}
@@ -206,7 +207,7 @@ services:
     environment:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
-      AUTH_BASE_URL: ${ANALYTICS_AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: ${ANALYTICS_SSO_EXPECTED_AUDIENCE:-tt-analytics}
@@ -320,7 +321,7 @@ services:
     environment:
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY:-tt-attendance-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres-attendance:5432/tt_attendance}
-      AUTH_BASE_URL: ${ATTENDANCE_AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
       TT_AGENDA_INTERNAL_URL: ${TT_AGENDA_INTERNAL_URL:-http://tt-agenda:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}

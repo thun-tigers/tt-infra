@@ -17,11 +17,12 @@ Gemeinsamer Neustart:
 - `tt-agenda`: `0.1.0`
 - `tt-analytics`: `0.1.0`
 - `tt-attendance`: `0.1.0`
-- `tt-infra`: `0.1.0`
+- `tt-infra`: `0.1.8`
 
 Manifest:
 
 - `releases/0.1.0.env`
+- `releases/0.1.8.env`
 
 Die Manifest-Datei pinnt die Image-Tags fuer:
 
@@ -44,7 +45,7 @@ Voraussetzungen:
 Readiness-Check:
 
 ```bash
-./tt-infra/scripts/check_release_readiness.sh 0.1.0
+./tt-infra/scripts/check_release_readiness.sh 0.1.8
 ```
 
 Der Check prueft:
@@ -59,19 +60,19 @@ Der Check prueft:
 Dry Run:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.0 --dry-run
+./tt-infra/scripts/tag_release.sh 0.1.8 --dry-run
 ```
 
 Lokale Tags erstellen:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.0 --apply
+./tt-infra/scripts/tag_release.sh 0.1.8 --apply
 ```
 
 Lokale Tags erstellen und pushen:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.0 --push
+./tt-infra/scripts/tag_release.sh 0.1.8 --push
 ```
 
 Hinweis:
@@ -88,7 +89,7 @@ In jedem Repository:
 
 In `tt-infra`:
 
-- `releases/0.1.0.env` bleibt die zentrale Referenz fuer diesen Plattform-Stand
+- `releases/0.1.8.env` bleibt die zentrale Referenz fuer diesen Plattform-Stand
 
 ## Neue Plattform-Releases
 
