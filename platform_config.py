@@ -233,14 +233,14 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
         _internal_url_section(),
         section(
             'Infra',
-            entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres-infra:5432/tt_infra'),
+            entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres:5432/tt_infra'),
             entry('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance'),
             entry('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads'),
         ),
         section(
             'Auth',
             entry('AUTH_PORT', '8085'),
-            entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres-auth:5432/tt_auth'),
+            entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres:5432/tt_auth'),
             entry('JWT_EXPIRY_HOURS', '8'),
             entry('JWT_COOKIE_DOMAIN', 'localhost'),
             entry('JWT_COOKIE_SECURE', 'false'),
@@ -254,13 +254,13 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
         section(
             'Members',
             entry('MEMBERS_PORT', '8088'),
-            entry('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members'),
+            entry('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:tt_members_password@tt-postgres:5432/tt_members'),
             entry('MEMBERS_SSO_EXPECTED_AUDIENCE', 'tt-members'),
         ),
         section(
             'Agenda',
             entry('AGENDA_PORT', '8086'),
-            entry('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:tt_agenda_password@tt-postgres-agenda:5432/tt_agenda'),
+            entry('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:tt_agenda_password@tt-postgres:5432/tt_agenda'),
             entry('AGENDA_WEBHOOK_ENABLED', 'false'),
             entry('AGENDA_WEBHOOK_URL', 'https://example.invalid/webhook', required=False),
             entry('AGENDA_SSO_EXPECTED_AUDIENCE', 'tt-agenda'),
@@ -270,7 +270,7 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
         section(
             'Analytics',
             entry('ANALYTICS_PORT', '8087'),
-            entry('ANALYTICS_DATABASE_URL', 'postgresql+psycopg://tt_analytics:tt_analytics_password@tt-postgres-analytics:5432/tt_analytics'),
+            entry('ANALYTICS_DATABASE_URL', 'postgresql+psycopg://tt_analytics:tt_analytics_password@tt-postgres:5432/tt_analytics'),
             entry('ANALYTICS_SSO_EXPECTED_AUDIENCE', 'tt-analytics'),
             entry('ANALYTICS_SSO_AUTO_PROVISION_USERS', 'true'),
             entry('ANALYTICS_SSO_SYNC_ROLE', 'true'),
@@ -286,7 +286,7 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
         section(
             'Attendance',
             entry('ATTENDANCE_PORT', '8089'),
-            entry('ATTENDANCE_DATABASE_URL', 'postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres-attendance:5432/tt_attendance'),
+            entry('ATTENDANCE_DATABASE_URL', 'postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres:5432/tt_attendance'),
             entry('ATTENDANCE_SSO_EXPECTED_AUDIENCE', 'tt-attendance'),
         ),
         section(
@@ -426,13 +426,13 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
         _internal_url_section(),
         section(
             'Infra',
-            entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:change-me@tt-postgres-infra:5432/tt_infra'),
+            entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:change-me@tt-postgres:5432/tt_infra'),
             entry('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance'),
             entry('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads'),
         ),
         section(
             'Auth',
-            entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:change-me@tt-postgres-auth:5432/tt_auth'),
+            entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:change-me@tt-postgres:5432/tt_auth'),
             entry('JWT_EXPIRY_HOURS', '8'),
             entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
             entry('JWT_COOKIE_SECURE', 'true'),
@@ -444,12 +444,12 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Members',
-            entry('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:change-me@tt-postgres-members:5432/tt_members'),
+            entry('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:change-me@tt-postgres:5432/tt_members'),
             entry('MEMBERS_SSO_EXPECTED_AUDIENCE', 'tt-members'),
         ),
         section(
             'Agenda',
-            entry('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:change-me@tt-postgres-agenda:5432/tt_agenda'),
+            entry('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:change-me@tt-postgres:5432/tt_agenda'),
             entry('AGENDA_WEBHOOK_ENABLED', 'false'),
             entry('AGENDA_WEBHOOK_URL', '', required=False),
             entry('AGENDA_SSO_EXPECTED_AUDIENCE', 'tt-agenda'),
@@ -458,7 +458,7 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Analytics',
-            entry('ANALYTICS_DATABASE_URL', 'postgresql+psycopg://tt_analytics:change-me@tt-postgres-analytics:5432/tt_analytics'),
+            entry('ANALYTICS_DATABASE_URL', 'postgresql+psycopg://tt_analytics:change-me@tt-postgres:5432/tt_analytics'),
             entry('ANALYTICS_SSO_EXPECTED_AUDIENCE', 'tt-analytics'),
             entry('ANALYTICS_SSO_AUTO_PROVISION_USERS', 'true'),
             entry('ANALYTICS_SSO_SYNC_ROLE', 'true'),
@@ -473,7 +473,7 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Attendance',
-            entry('ATTENDANCE_DATABASE_URL', 'postgresql+psycopg://tt_attendance:change-me@tt-postgres-attendance:5432/tt_attendance'),
+            entry('ATTENDANCE_DATABASE_URL', 'postgresql+psycopg://tt_attendance:change-me@tt-postgres:5432/tt_attendance'),
             entry('ATTENDANCE_SSO_EXPECTED_AUDIENCE', 'tt-attendance'),
         ),
         section(
