@@ -4,6 +4,7 @@ from pathlib import Path
 
 from flask import Flask
 from sqlalchemy import inspect, text
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
 from .extensions import db
@@ -105,6 +106,7 @@ def create_app(config_class=Config):
         Path(app.config.get('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance')).mkdir(parents=True, exist_ok=True)
         Path(app.config.get('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads')).mkdir(parents=True, exist_ok=True)
 
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     return app
 
 

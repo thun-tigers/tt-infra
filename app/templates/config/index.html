@@ -22,6 +22,16 @@
         <div class="text-xs uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Release</div>
         <div class="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">v{{ release_version }}</div>
       </div>
+      <div class="rounded-2xl border {% if generated_env_status %}border-emerald-300/70 dark:border-emerald-400/30 bg-emerald-50 dark:bg-emerald-500/10{% else %}border-amber-300/70 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-500/10{% endif %} px-4 py-3 shadow-soft backdrop-blur sm:col-span-2 xl:col-span-1">
+        <div class="text-xs uppercase tracking-[0.24em] {% if generated_env_status %}text-emerald-700 dark:text-emerald-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">generated.env</div>
+        <div class="mt-1 text-sm font-medium {% if generated_env_status %}text-emerald-900 dark:text-emerald-100{% else %}text-amber-900 dark:text-amber-100{% endif %}">
+          {% if generated_env_status %}
+            Aktualisiert {{ generated_env_status }}
+          {% else %}
+            Noch nicht generiert — Speichern erzeugt instance/generated.env
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 
@@ -73,15 +83,19 @@
 
         <div class="mt-6 grid gap-4 lg:grid-cols-2">
           {% for item in section.entries %}
-          <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/80 p-4">
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="{{ item.key }}">
+          <div class="rounded-2xl border {% if item.derived %}border-slate-200/60 dark:border-slate-700/40 bg-slate-50/50 dark:bg-slate-900/30{% else %}border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900/80{% endif %} p-4">
+            <label class="block text-sm font-medium {% if item.derived %}text-slate-400 dark:text-slate-500{% else %}text-slate-700 dark:text-slate-200{% endif %}" for="{{ item.key }}">
               <span class="font-mono">{{ item.key }}</span>
-              {% if item.required %}
+              {% if item.derived %}
+              <span class="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">Abgeleitet</span>
+              {% elif item.required %}
               <span class="ml-2 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-800 dark:bg-rose-500/15 dark:text-rose-100">Pflicht</span>
               {% endif %}
             </label>
             <div class="mt-3">
-              {% if item.kind == 'checkbox' %}
+              {% if item.derived %}
+              <div class="block w-full rounded-2xl border border-slate-200 dark:border-slate-700/40 bg-white/40 dark:bg-slate-950/30 px-4 py-3 text-sm font-mono text-slate-400 dark:text-slate-500 select-all">{{ item.value }}</div>
+              {% elif item.kind == 'checkbox' %}
               <label class="inline-flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                 <input id="{{ item.key }}" name="{{ item.key }}" type="checkbox" {% if item.value == 'true' %}checked{% endif %} class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
                 <span>Aktiv</span>
@@ -94,8 +108,10 @@
               <input id="{{ item.key }}" name="{{ item.key }}" type="text" value="{{ item.value }}" class="block w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 px-4 py-3 text-sm text-slate-800 dark:text-slate-200">
               {% endif %}
             </div>
-            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {% if item.masked %}
+            <div class="mt-2 text-xs {% if item.derived %}text-sky-500/80 dark:text-sky-400/60{% else %}text-slate-500 dark:text-slate-400{% endif %}">
+              {% if item.derived %}
+              Wird automatisch aus PUBLIC_BASE_URL abgeleitet · nicht editierbar
+              {% elif item.masked %}
               Aktuell gespeichert: {{ item.display_value }}
               {% else %}
               Aktueller Wert: {{ item.display_value }}

@@ -1,0 +1,55 @@
+# tt-proxy: Beta path-based reverse proxy
+# Entry point: https://beta.thun-tigers.net  (TLS wird durch Cloudflared terminiert)
+#
+# Caddy lauscht auf :80 im Docker-internen Netz.
+# Cloudflared → Caddy:80 → jeweiliger Service
+#
+# Routing:   /service/* → tt-service:5000 (Präfix wird gestripped)
+# Headers:   X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host (Cloudflared-Standard)
+#            X-Forwarded-Prefix (für ProxyFix SCRIPT_NAME in allen Flask-Services)
+
+:80 {
+	# Bare paths ohne Trailing Slash → Redirect
+	redir /auth /auth/ 308
+	redir /members /members/ 308
+	redir /agenda /agenda/ 308
+	redir /analytics /analytics/ 308
+	redir /attendance /attendance/ 308
+	redir /infra /infra/ 308
+
+	handle_path /auth/* {
+		reverse_proxy tt-auth:5000 {
+			header_up X-Forwarded-Prefix /auth
+		}
+	}
+
+	handle_path /members/* {
+		reverse_proxy tt-members:5000 {
+			header_up X-Forwarded-Prefix /members
+		}
+	}
+
+	handle_path /agenda/* {
+		reverse_proxy tt-agenda:5000 {
+			header_up X-Forwarded-Prefix /agenda
+		}
+	}
+
+	handle_path /analytics/* {
+		reverse_proxy tt-analytics:5000 {
+			header_up X-Forwarded-Prefix /analytics
+		}
+	}
+
+	handle_path /attendance/* {
+		reverse_proxy tt-attendance:5000 {
+			header_up X-Forwarded-Prefix /attendance
+		}
+	}
+
+	handle_path /infra/* {
+		reverse_proxy tt-infra:5000 {
+			header_up X-Forwarded-Prefix /infra
+		}
+	}
+}

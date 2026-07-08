@@ -30,6 +30,18 @@ def section(title: str, *entries: EnvEntry) -> EnvSection:
 
 PROFILE_NAMES = ('local', 'beta', 'production')
 
+# Keys derived at render time from PUBLIC_BASE_URL.
+# They appear in generated.env for backwards compat but are NOT stored in
+# platform-config.json and are NOT editable in the Config-UI.
+PUBLIC_DERIVED_KEYS: frozenset[str] = frozenset({
+    'AUTH_BASE_URL',
+    'DEFAULT_MEMBERS_URL',
+    'DEFAULT_AGENDA_URL',
+    'DEFAULT_ANALYTICS_URL',
+    'DEFAULT_INFRA_URL',
+    'DEFAULT_ATTENDANCE_URL',
+})
+
 
 def _image_tag_entries(version: str) -> tuple[EnvEntry, ...]:
     tag = f'v{version.lstrip("v")}'
@@ -112,7 +124,9 @@ def profile_sections(profile: str, version: str | None = None, include_image_tag
         sections = production_env_sections(version or '0.1.0')
     else:
         raise ValueError(f'Unknown profile: {profile}')
-    return merge_sections(sections, overrides)
+    # User-store overrides applied first, then PUBLIC_BASE_URL derivation wins.
+    merged = merge_sections(sections, overrides)
+    return _apply_public_base_derivation(merged)
 
 
 def profile_values(profile: str, version: str | None = None, include_image_tags: bool = False, overrides: dict[str, str] | None = None) -> dict[str, str]:
@@ -123,17 +137,44 @@ def profile_validation_errors(profile: str, version: str | None = None, include_
     return validate_sections(profile_sections(profile, version=version, include_image_tags=include_image_tags, overrides=overrides))
 
 
-def _public_url_section(public_base: str, auth_public: str | None = None) -> EnvSection:
-    auth_public = auth_public or f'{public_base}:8085'
+def _public_url_section(public_base_url: str) -> EnvSection:
+    """Build the Public URLs section.
+
+    PUBLIC_BASE_URL is the only editable entry; the six derived keys are
+    placeholders overwritten at render time by _apply_public_base_derivation().
+    """
+    pub = public_base_url.rstrip('/')
     return section(
         'Public URLs',
-        entry('AUTH_BASE_URL', auth_public),
-        entry('DEFAULT_MEMBERS_URL', f'{public_base}:8088'),
-        entry('DEFAULT_AGENDA_URL', f'{public_base}:8086'),
-        entry('DEFAULT_ANALYTICS_URL', f'{public_base}:8087'),
-        entry('DEFAULT_INFRA_URL', f'{public_base}:8084'),
-        entry('DEFAULT_ATTENDANCE_URL', f'{public_base}:8089'),
+        entry('PUBLIC_BASE_URL', pub),
+        entry('AUTH_BASE_URL',         f'{pub}/auth'),
+        entry('DEFAULT_MEMBERS_URL',   f'{pub}/members'),
+        entry('DEFAULT_AGENDA_URL',    f'{pub}/agenda'),
+        entry('DEFAULT_ANALYTICS_URL', f'{pub}/analytics'),
+        entry('DEFAULT_INFRA_URL',     f'{pub}/infra'),
+        entry('DEFAULT_ATTENDANCE_URL',f'{pub}/attendance'),
     )
+
+
+def _apply_public_base_derivation(sections: tuple[EnvSection, ...]) -> tuple[EnvSection, ...]:
+    """Recompute the six derived URL entries from PUBLIC_BASE_URL.
+
+    Runs after merge_sections() so that any stored overrides for the derived
+    keys are silently replaced. PUBLIC_BASE_URL always wins.
+    """
+    values = flatten_sections(sections)
+    pub_base = values.get('PUBLIC_BASE_URL', '').rstrip('/')
+    if not pub_base:
+        return sections
+    derived: dict[str, str] = {
+        'AUTH_BASE_URL':         f'{pub_base}/auth',
+        'DEFAULT_MEMBERS_URL':   f'{pub_base}/members',
+        'DEFAULT_AGENDA_URL':    f'{pub_base}/agenda',
+        'DEFAULT_ANALYTICS_URL': f'{pub_base}/analytics',
+        'DEFAULT_INFRA_URL':     f'{pub_base}/infra',
+        'DEFAULT_ATTENDANCE_URL':f'{pub_base}/attendance',
+    }
+    return merge_sections(sections, derived)
 
 
 def _shared_secret_section(*, placeholders: bool) -> EnvSection:
@@ -188,7 +229,7 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
             entry('LOG_LEVEL', 'INFO'),
         ),
         _shared_secret_section(placeholders=False),
-        _public_url_section('http://localhost'),
+        _public_url_section('http://localhost:8080'),
         _internal_url_section(),
         section(
             'Infra',
@@ -289,20 +330,7 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section('Images', *_image_tag_entries(version)),
         _shared_secret_section(placeholders=False),
-        section(
-            'Beta URLs',
-            entry('AUTH_BASE_URL', 'https://beta.thun-tigers.net'),
-            entry('DEFAULT_MEMBERS_URL', 'https://members-beta.thun-tigers.net'),
-            entry('DEFAULT_AGENDA_URL', 'https://agenda-beta.thun-tigers.net'),
-            entry('DEFAULT_ANALYTICS_URL', 'https://analytics-beta.thun-tigers.net'),
-            entry('DEFAULT_ATTENDANCE_URL', 'https://attendance-beta.thun-tigers.net'),
-            entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
-            entry('JWT_COOKIE_SECURE', 'true'),
-            entry('CREATE_DEFAULT_USERS', 'false'),
-            entry('CREATE_DEFAULT_SERVICES', 'true'),
-            entry('DEFAULT_ADMIN_USERNAME', 'admin'),
-            entry('DEFAULT_ADMIN_PASSWORD', 'change-me-admin-password'),
-        ),
+        _public_url_section('https://beta.thun-tigers.net'),
         _internal_url_section(),
         section(
             'Infra',
@@ -314,7 +342,13 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
             'Auth',
             entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:change-me@tt-postgres-auth:5432/tt_auth_beta'),
             entry('JWT_EXPIRY_HOURS', '8'),
+            entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
+            entry('JWT_COOKIE_SECURE', 'true'),
             entry('SSO_TOKEN_EXPIRY_SECONDS', '60'),
+            entry('CREATE_DEFAULT_USERS', 'false'),
+            entry('CREATE_DEFAULT_SERVICES', 'true'),
+            entry('DEFAULT_ADMIN_USERNAME', 'admin'),
+            entry('DEFAULT_ADMIN_PASSWORD', 'change-me-admin-password'),
         ),
         section(
             'Members',
@@ -387,23 +421,8 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
             entry('TT_HOST_BIND_IP', '172.17.0.1'),
         ),
         section('Images', *_image_tag_entries(version)),
-        section(
-            'Production URLs',
-            entry('AUTH_BASE_URL', 'https://auth.thun-tigers.net'),
-            entry('DEFAULT_MEMBERS_URL', 'https://members.thun-tigers.net'),
-            entry('DEFAULT_AGENDA_URL', 'https://agenda.thun-tigers.net'),
-            entry('DEFAULT_ANALYTICS_URL', 'https://analytics.thun-tigers.net'),
-            entry('DEFAULT_INFRA_URL', 'https://infra.thun-tigers.net'),
-            entry('DEFAULT_ATTENDANCE_URL', 'https://attendance.thun-tigers.net'),
-            entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
-            entry('JWT_COOKIE_SECURE', 'true'),
-            entry('CREATE_DEFAULT_USERS', 'false'),
-            entry('CREATE_DEFAULT_SERVICES', 'true'),
-            entry('DEFAULT_ADMIN_USERNAME', 'admin'),
-            entry('DEFAULT_ADMIN_PASSWORD', ''),
-            entry('SSO_TOKEN_EXPIRY_SECONDS', '60'),
-        ),
         _shared_secret_section(placeholders=True),
+        _public_url_section('https://thun-tigers.net'),
         _internal_url_section(),
         section(
             'Infra',
@@ -415,6 +434,13 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
             'Auth',
             entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:change-me@tt-postgres-auth:5432/tt_auth'),
             entry('JWT_EXPIRY_HOURS', '8'),
+            entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
+            entry('JWT_COOKIE_SECURE', 'true'),
+            entry('SSO_TOKEN_EXPIRY_SECONDS', '60'),
+            entry('CREATE_DEFAULT_USERS', 'false'),
+            entry('CREATE_DEFAULT_SERVICES', 'true'),
+            entry('DEFAULT_ADMIN_USERNAME', 'admin'),
+            entry('DEFAULT_ADMIN_PASSWORD', '', required=False),
         ),
         section(
             'Members',

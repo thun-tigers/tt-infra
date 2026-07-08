@@ -4,6 +4,9 @@ services:
     image: ghcr.io/swisi/tt-infra:latest
     ports:
       - "8084:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY:-tt-infra-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres-infra:5432/tt_infra}
@@ -21,7 +24,7 @@ services:
       MEMBERS_INSTANCE_DIR: /backup-sources/tt-members-instance
       ANALYTICS_UPLOAD_ROOT: /backup-sources/tt-analytics-uploads
     volumes:
-      - tt-infra-data:/app/instance
+      - ./instance:/app/instance
       - tt-members-data:/backup-sources/tt-members-instance
       - analytics-uploads-data:/backup-sources/tt-analytics-uploads
     depends_on:
@@ -61,6 +64,9 @@ services:
     image: ghcr.io/swisi/tt-auth:latest
     ports:
       - "8085:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${AUTH_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
@@ -109,6 +115,9 @@ services:
     image: ghcr.io/swisi/tt-members:latest
     ports:
       - "8088:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY:-tt-members-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members}
@@ -167,10 +176,14 @@ services:
     image: ghcr.io/swisi/tt-agenda:latest
     ports:
       - "8086:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${AGENDA_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: ${AGENDA_SSO_EXPECTED_AUDIENCE:-tt-agenda}
@@ -204,10 +217,14 @@ services:
     image: ghcr.io/swisi/tt-analytics:latest
     ports:
       - "8087:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       SSO_EXPECTED_AUDIENCE: ${ANALYTICS_SSO_EXPECTED_AUDIENCE:-tt-analytics}
@@ -318,11 +335,15 @@ services:
     image: ghcr.io/swisi/tt-attendance:latest
     ports:
       - "8089:5000"
+    env_file:
+      - path: ./instance/generated.env
+        required: false
     environment:
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY:-tt-attendance-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres-attendance:5432/tt_attendance}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
+      TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_AGENDA_INTERNAL_URL: ${TT_AGENDA_INTERNAL_URL:-http://tt-agenda:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
@@ -369,12 +390,25 @@ services:
     networks:
       - tigers-internal
 
+  # Lokaler Reverse Proxy — additiver Entry Point auf http://localhost:8080
+  # Routet /service/* → tt-service:5000 (Commit 1: nicht-breaking, alte Ports bleiben aktiv)
+  tt-proxy:
+    image: caddy:2-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
 networks:
   tigers-internal:
     driver: bridge
 
 volumes:
-  tt-infra-data:
   tt-members-data:
     external: true
     name: tt-members_tt-members-data
@@ -386,3 +420,5 @@ volumes:
   postgres-analytics-data:
   analytics-uploads-data:
   redis-data:
+  caddy-data:
+  caddy-config:

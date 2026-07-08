@@ -9,7 +9,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get('user_id'):
-            return redirect(url_for('auth.login', next=request.path))
+            return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
 
     return decorated
@@ -20,7 +20,7 @@ def admin_required(f):
     def decorated(*args, **kwargs):
         current_user = _current_user()
         if not current_user:
-            return redirect(url_for('auth.login', next=request.path))
+            return redirect(url_for('auth.login', next=request.url))
         if current_user.get('platform_role') != 'admin' and current_user.get('service_role') != 'admin':
             flash('Nur Administratoren haben Zugriff.', 'danger')
             return redirect(url_for('auth.login'))

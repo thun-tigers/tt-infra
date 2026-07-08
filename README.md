@@ -45,20 +45,39 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 - docs/beta-cloudflared-daemon.md Beta-Betrieb mit Arcane und Cloudflared Daemon
 - docs/data-migration.md Datenmigration von SQLite nach PostgreSQL
 
-## Schnellstart
+## Schnellstart (lokal)
 
 1. Repositories tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance lokal neben dieses Repo legen.
-2. `.env.example` aus `scripts/render_platform_env.py` erzeugen und nach `.env` kopieren.
-3. Stack starten.
+2. Stack mit einem Befehl starten — `generated.env` wird automatisch erstellt:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+./setup.sh
 ```
+
+Oder manuell:
+
+```bash
+./scripts/generate-env.sh local
+./scripts/deploy.sh --build
+```
+
+**Lokaler Entry Point:** `http://localhost:8080`
+
+| Pfad | Service |
+|---|---|
+| http://localhost:8080/auth/ | tt-auth (Login, Dashboard) |
+| http://localhost:8080/members/ | tt-members |
+| http://localhost:8080/agenda/ | tt-agenda |
+| http://localhost:8080/analytics/ | tt-analytics |
+| http://localhost:8080/attendance/ | tt-attendance |
+| http://localhost:8080/infra/ | tt-infra (Config-UI, Admin) |
+
+Die direkten Service-Ports (8084–8089) sind lokal noch aktiv und koennen parallel verwendet werden.
 
 ## Deployment-Modi
 
-- docker-compose.yml gemeinsamer Basis-Stack ohne oeffentliche App-Ports
-- docker-compose.local.yml lokaler Direktzugriff ueber localhost:8085/8086/8087/8088
+- docker-compose.yml zentraler Stack mit Caddy-Reverse-Proxy (Port 8080) und direkten Service-Ports
+- docker-compose.local.yml optionale Port-Variablen fuer Entwicklung
 - docker-compose.arcane.beta.yml serverseitiger Beta-Stack fuer Arcane plus Cloudflared Daemon
 
 ## Versionierung und Releases
@@ -74,25 +93,47 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ### Lokal auf dem Entwickler-Laptop
 
 ```bash
-python scripts/render_platform_env.py render-env --profile local > .env.example
-cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+./setup.sh                         # Erststart: env generieren + Stack bauen
+./scripts/deploy.sh                # Neustart ohne Rebuild
+./scripts/deploy.sh --build        # Neustart mit Rebuild
+./scripts/generate-env.sh local    # Nur generated.env aktualisieren
 ```
+
+Config-UI (Secrets, URLs, Profil-Werte): `http://localhost:8080/infra/config`
+
+### URL-Ableitung
+
+Der einzige konfigurierbare Public-URL-Einstieg ist **`PUBLIC_BASE_URL`** (z.B. `http://localhost:8080`).
+Alle weiteren Public URLs werden zur Laufzeit automatisch abgeleitet und sind nicht separat editierbar:
+
+| Variable | Abgeleitet als |
+|---|---|
+| `AUTH_BASE_URL` | `{PUBLIC_BASE_URL}/auth` |
+| `DEFAULT_MEMBERS_URL` | `{PUBLIC_BASE_URL}/members` |
+| `DEFAULT_AGENDA_URL` | `{PUBLIC_BASE_URL}/agenda` |
+| `DEFAULT_ANALYTICS_URL` | `{PUBLIC_BASE_URL}/analytics` |
+| `DEFAULT_ATTENDANCE_URL` | `{PUBLIC_BASE_URL}/attendance` |
+| `DEFAULT_INFRA_URL` | `{PUBLIC_BASE_URL}/infra` |
+
+Alle abgeleiteten Werte stehen weiterhin in `instance/generated.env` (Abwaertskompatibilitaet) und werden von Docker Compose und tt-auth beim Start eingelesen.
+Die Config-UI zeigt die abgeleiteten Felder als schreibgeschuetzt an ("Abgeleitet"-Badge).
 
 ## Beta auf Server
 
-Beispiel fuer den laufenden Beta-Stack:
+Entry Point: `https://beta.thun-tigers.net`
 
-- beta.thun-tigers.net
-- auth-beta.thun-tigers.net
-- members-beta.thun-tigers.net
-- agenda-beta.thun-tigers.net
-- analytics-beta.thun-tigers.net
-- attendance-beta.thun-tigers.net
+| Pfad | Service |
+|---|---|
+| https://beta.thun-tigers.net/auth/ | tt-auth |
+| https://beta.thun-tigers.net/members/ | tt-members |
+| https://beta.thun-tigers.net/agenda/ | tt-agenda |
+| https://beta.thun-tigers.net/analytics/ | tt-analytics |
+| https://beta.thun-tigers.net/attendance/ | tt-attendance |
+| https://beta.thun-tigers.net/infra/ | tt-infra |
 
 Alle fachlichen Services verwenden denselben Einstieg:
 
-- `/<service>/login` leitet auf `tt-auth` weiter
+- `/<service>/login` leitet auf `/auth/` weiter
 - `tt-auth` startet den SSO-Flow
 - der Service nimmt das Token unter `/auth/sso` an und springt danach auf `/`
 
@@ -101,7 +142,6 @@ Start auf Server (mit vorhandener .env.arcane.beta):
 ```bash
 docker compose --env-file .env.arcane.beta \
 	-f docker-compose.yml \
-	-f docker-compose.local.yml \
 	-f docker-compose.arcane.beta.yml \
 	up -d --build
 ```
