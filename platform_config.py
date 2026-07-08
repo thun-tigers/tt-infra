@@ -119,7 +119,7 @@ def profile_sections(profile: str, version: str | None = None, include_image_tag
     if profile == 'local':
         sections = local_env_sections(version=version, include_image_tags=include_image_tags)
     elif profile == 'beta':
-        sections = beta_env_sections(version or '0.1.0')
+        sections = beta_env_sections(version or '0.1.9')
     elif profile == 'production':
         sections = production_env_sections(version or '0.1.0')
     else:
