@@ -9,6 +9,8 @@
 #            X-Forwarded-Prefix (für ProxyFix SCRIPT_NAME in allen Flask-Services)
 
 :80 {
+	redir / /auth/ 308
+
 	# Bare paths ohne Trailing Slash → Redirect
 	redir /auth /auth/ 308
 	redir /members /members/ 308
