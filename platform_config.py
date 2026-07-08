@@ -123,27 +123,16 @@ def profile_validation_errors(profile: str, version: str | None = None, include_
     return validate_sections(profile_sections(profile, version=version, include_image_tags=include_image_tags, overrides=overrides))
 
 
-def _shared_url_section(public_base: str, auth_public: str | None = None) -> EnvSection:
+def _public_url_section(public_base: str, auth_public: str | None = None) -> EnvSection:
     auth_public = auth_public or f'{public_base}:8085'
     return section(
-        'Service URLs',
+        'Public URLs',
         entry('AUTH_BASE_URL', auth_public),
         entry('DEFAULT_MEMBERS_URL', f'{public_base}:8088'),
         entry('DEFAULT_AGENDA_URL', f'{public_base}:8086'),
         entry('DEFAULT_ANALYTICS_URL', f'{public_base}:8087'),
         entry('DEFAULT_INFRA_URL', f'{public_base}:8084'),
         entry('DEFAULT_ATTENDANCE_URL', f'{public_base}:8089'),
-        entry('DEFAULT_MEMBERS_INTERNAL_URL', 'http://tt-members:5000'),
-        entry('DEFAULT_AGENDA_INTERNAL_URL', 'http://tt-agenda:5000'),
-        entry('DEFAULT_ANALYTICS_INTERNAL_URL', 'http://tt-analytics:5000'),
-        entry('DEFAULT_INFRA_INTERNAL_URL', 'http://tt-infra:5000'),
-        entry('DEFAULT_ATTENDANCE_INTERNAL_URL', 'http://tt-attendance:5000'),
-        entry('TT_AUTH_INTERNAL_URL', 'http://tt-auth:5000'),
-        entry('TT_MEMBERS_INTERNAL_URL', 'http://tt-members:5000'),
-        entry('TT_AGENDA_INTERNAL_URL', 'http://tt-agenda:5000'),
-        entry('TT_ANALYTICS_INTERNAL_URL', 'http://tt-analytics:5000'),
-        entry('TT_ATTENDANCE_INTERNAL_URL', 'http://tt-attendance:5000'),
-        entry('TT_INFRA_INTERNAL_URL', 'http://tt-infra:5000'),
     )
 
 
@@ -199,7 +188,8 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
             entry('LOG_LEVEL', 'INFO'),
         ),
         _shared_secret_section(placeholders=False),
-        _shared_url_section('http://localhost'),
+        _public_url_section('http://localhost'),
+        _internal_url_section(),
         section(
             'Infra',
             entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres-infra:5432/tt_infra'),

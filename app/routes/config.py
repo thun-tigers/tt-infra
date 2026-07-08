@@ -39,7 +39,7 @@ NUMBER_HINTS = (
 )
 
 TAB_DEFINITIONS = (
-    ('routing', 'Routing', {'Core', 'Images', 'Secrets', 'Beta URLs', 'Production URLs', 'Service URLs', 'Internal URLs'}),
+    ('routing', 'Routing', {'Core', 'Images', 'Secrets', 'Beta URLs', 'Production URLs', 'Public URLs', 'Internal URLs'}),
     ('infra', 'Infra', {'Infra'}),
     ('auth', 'Auth', {'Auth'}),
     ('members', 'Members', {'Members'}),

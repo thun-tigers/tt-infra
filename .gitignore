@@ -6,5 +6,7 @@ __pycache__/
 *.pyc
 migration-archive/
 instance/
+secrets.local.json
+platform-config.json
 .env.arcane.beta.v*
 .env.arcane.local.v*
