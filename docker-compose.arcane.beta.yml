@@ -4,14 +4,14 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY:?INFRA_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}@tt-postgres-infra:5432/tt_infra_beta}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_infra_beta}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-https://beta.thun-tigers.net/auth}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:?SSO_SHARED_SECRET muss gesetzt sein}
-      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}@tt-postgres-auth:5432/tt_auth_beta}
-      MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}@tt-postgres-members:5432/tt_members_beta}
-      AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres-agenda:5432/tt_agenda_beta}
-      ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL:-postgresql+psycopg://tt_analytics:${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}@tt-postgres-analytics:5432/tt_analytics_beta}
-      ATTENDANCE_DATABASE_URL: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}@tt-postgres-attendance:5432/tt_attendance_beta}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_auth_beta}
+      MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_members_beta}
+      AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_agenda_beta}
+      ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL:-postgresql+psycopg://tt_analytics:${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_analytics_beta}
+      ATTENDANCE_DATABASE_URL: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_attendance_beta}
       MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/backup-sources/tt-members-instance}
       ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/backup-sources/tt-analytics-uploads}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET muss gesetzt sein}
@@ -19,11 +19,11 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
-      - ./instance:/app/instance
+      - tt-infra-data:/app/instance
       - tt-members-data:/backup-sources/tt-members-instance
       - analytics-uploads-data:/backup-sources/tt-analytics-uploads
     depends_on:
-      tt-postgres-infra:
+      tt-postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -35,30 +35,12 @@ services:
       retries: 3
       start_period: 15s
 
-  tt-postgres-infra:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
-      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
-      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}
-      TZ: ${TZ:-Europe/Zurich}
-    volumes:
-      - postgres-infra-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - tigers-internal
-
   tt-auth:
     image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-auth:${TT_AUTH_IMAGE_TAG:-beta}
     pull_policy: always
     environment:
       SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}@tt-postgres-auth:5432/tt_auth_beta}
+      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_auth_beta}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-8}
       JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-.thun-tigers.net}
       JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-true}
@@ -86,7 +68,7 @@ services:
     depends_on:
       tt-redis:
         condition: service_healthy
-      tt-postgres-auth:
+      tt-postgres:
         condition: service_healthy
       tt-infra:
         condition: service_healthy
@@ -105,7 +87,7 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${MEMBERS_SECRET_KEY:?MEMBERS_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}@tt-postgres-members:5432/tt_members_beta}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_members_beta}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-https://beta.thun-tigers.net/auth}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
@@ -123,7 +105,7 @@ services:
         condition: service_healthy
       tt-infra:
         condition: service_healthy
-      tt-postgres-members:
+      tt-postgres:
         condition: service_healthy
       tt-redis:
         condition: service_healthy
@@ -142,7 +124,7 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${AGENDA_SECRET_KEY:?AGENDA_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres-agenda:5432/tt_agenda_beta}
+      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_agenda_beta}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-https://beta.thun-tigers.net/auth}
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:?SSO_SHARED_SECRET muss gesetzt sein}
@@ -159,7 +141,7 @@ services:
     depends_on:
       tt-redis:
         condition: service_healthy
-      tt-postgres-agenda:
+      tt-postgres:
         condition: service_healthy
       tt-infra:
         condition: service_healthy
@@ -178,7 +160,7 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY:?ANALYTICS_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL:-postgresql+psycopg://tt_analytics:${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}@tt-postgres-analytics:5432/tt_analytics_beta}
+      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL:-postgresql+psycopg://tt_analytics:${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_analytics_beta}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-https://beta.thun-tigers.net/auth}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:?SSO_SHARED_SECRET muss gesetzt sein}
       SSO_EXPECTED_AUDIENCE: tt-analytics
@@ -204,7 +186,7 @@ services:
     depends_on:
       tt-redis:
         condition: service_healthy
-      tt-postgres-analytics:
+      tt-postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -221,7 +203,7 @@ services:
     pull_policy: always
     environment:
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY:?ATTENDANCE_SECRET_KEY muss gesetzt sein}
-      SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}@tt-postgres-attendance:5432/tt_attendance_beta}
+      SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_attendance_beta}
       AUTH_BASE_URL: ${AUTH_BASE_URL:-https://beta.thun-tigers.net/auth}
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
@@ -239,7 +221,7 @@ services:
         condition: service_healthy
       tt-agenda:
         condition: service_healthy
-      tt-postgres-attendance:
+      tt-postgres:
         condition: service_healthy
       tt-redis:
         condition: service_healthy
@@ -253,89 +235,34 @@ services:
       retries: 3
       start_period: 20s
 
-  tt-postgres-auth:
+  tt-postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: ${POSTGRES_AUTH_DB:-tt_auth_beta}
-      POSTGRES_USER: ${POSTGRES_AUTH_USER:-tt_auth}
-      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}
+      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
+      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}
+      # Weitergabe an Init-Script für die anderen Datenbanken
+      POSTGRES_AUTH_USER: ${POSTGRES_AUTH_USER:-tt_auth}
+      POSTGRES_AUTH_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}
+      POSTGRES_AUTH_DB: ${POSTGRES_AUTH_DB:-tt_auth_beta}
+      POSTGRES_MEMBERS_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
+      POSTGRES_MEMBERS_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}
+      POSTGRES_MEMBERS_DB: ${POSTGRES_MEMBERS_DB:-tt_members_beta}
+      POSTGRES_AGENDA_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
+      POSTGRES_AGENDA_PASSWORD: ${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}
+      POSTGRES_AGENDA_DB: ${POSTGRES_AGENDA_DB:-tt_agenda_beta}
+      POSTGRES_ATTENDANCE_USER: ${POSTGRES_ATTENDANCE_USER:-tt_attendance}
+      POSTGRES_ATTENDANCE_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}
+      POSTGRES_ATTENDANCE_DB: ${POSTGRES_ATTENDANCE_DB:-tt_attendance_beta}
+      POSTGRES_ANALYTICS_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
+      POSTGRES_ANALYTICS_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}
+      POSTGRES_ANALYTICS_DB: ${POSTGRES_ANALYTICS_DB:-tt_analytics_beta}
       TZ: ${TZ:-Europe/Zurich}
     volumes:
-      - postgres-auth-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER:-tt_auth} -d ${POSTGRES_AUTH_DB:-tt_auth_beta}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - tigers-internal
-
-  tt-postgres-members:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${POSTGRES_MEMBERS_DB:-tt_members_beta}
-      POSTGRES_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
-      POSTGRES_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}
-      TZ: ${TZ:-Europe/Zurich}
-    volumes:
-      - postgres-members-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MEMBERS_USER:-tt_members} -d ${POSTGRES_MEMBERS_DB:-tt_members_beta}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - tigers-internal
-
-  tt-postgres-agenda:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${POSTGRES_AGENDA_DB:-tt_agenda_beta}
-      POSTGRES_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
-      POSTGRES_PASSWORD: ${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}
-      TZ: ${TZ:-Europe/Zurich}
-    volumes:
-      - postgres-agenda-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AGENDA_USER:-tt_agenda} -d ${POSTGRES_AGENDA_DB:-tt_agenda_beta}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - tigers-internal
-
-  tt-postgres-attendance:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${POSTGRES_ATTENDANCE_DB:-tt_attendance_beta}
-      POSTGRES_USER: ${POSTGRES_ATTENDANCE_USER:-tt_attendance}
-      POSTGRES_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}
-      TZ: ${TZ:-Europe/Zurich}
-    volumes:
-      - postgres-attendance-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ATTENDANCE_USER:-tt_attendance} -d ${POSTGRES_ATTENDANCE_DB:-tt_attendance_beta}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks:
-      - tigers-internal
-
-  tt-postgres-analytics:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: ${POSTGRES_ANALYTICS_DB:-tt_analytics_beta}
-      POSTGRES_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
-      POSTGRES_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}
-      TZ: ${TZ:-Europe/Zurich}
-    volumes:
-      - postgres-analytics-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ANALYTICS_USER:-tt_analytics} -d ${POSTGRES_ANALYTICS_DB:-tt_analytics_beta}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -359,10 +286,62 @@ services:
 
   tt-proxy:
     image: caddy:2-alpine
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        cat >/etc/caddy/Caddyfile <<'EOF'
+        :80 {
+          redir / /auth/ 308
+
+          redir /auth /auth/ 308
+          redir /members /members/ 308
+          redir /agenda /agenda/ 308
+          redir /analytics /analytics/ 308
+          redir /attendance /attendance/ 308
+          redir /infra /infra/ 308
+
+          handle_path /auth/* {
+            reverse_proxy tt-auth:5000 {
+              header_up X-Forwarded-Prefix /auth
+            }
+          }
+
+          handle_path /members/* {
+            reverse_proxy tt-members:5000 {
+              header_up X-Forwarded-Prefix /members
+            }
+          }
+
+          handle_path /agenda/* {
+            reverse_proxy tt-agenda:5000 {
+              header_up X-Forwarded-Prefix /agenda
+            }
+          }
+
+          handle_path /analytics/* {
+            reverse_proxy tt-analytics:5000 {
+              header_up X-Forwarded-Prefix /analytics
+            }
+          }
+
+          handle_path /attendance/* {
+            reverse_proxy tt-attendance:5000 {
+              header_up X-Forwarded-Prefix /attendance
+            }
+          }
+
+          handle_path /infra/* {
+            reverse_proxy tt-infra:5000 {
+              header_up X-Forwarded-Prefix /infra
+            }
+          }
+        }
+        EOF
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     ports:
-      - "${TT_HOST_BIND_IP:-172.17.0.1}:80:80"
+      - "80:80"
     volumes:
-      - ./Caddyfile.beta:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
     restart: unless-stopped
@@ -379,20 +358,12 @@ networks:
     name: tigers-beta-internal
 
 volumes:
+  tt-infra-data:
+    name: tigers-beta-tt-infra-data
   tt-members-data:
     name: tigers-beta-tt-members-data
-  postgres-infra-data:
-    name: tigers-beta-postgres-infra-data
-  postgres-auth-data:
-    name: tigers-beta-postgres-auth-data
-  postgres-members-data:
-    name: tigers-beta-postgres-members-data
-  postgres-agenda-data:
-    name: tigers-beta-postgres-agenda-data
-  postgres-attendance-data:
-    name: tigers-beta-postgres-attendance-data
-  postgres-analytics-data:
-    name: tigers-beta-postgres-analytics-data
+  postgres-data:
+    name: tigers-beta-postgres-data
   analytics-uploads-data:
     name: tigers-beta-analytics-uploads-data
   redis-data:
