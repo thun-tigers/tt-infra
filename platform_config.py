@@ -334,13 +334,13 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         _internal_url_section(),
         section(
             'Infra',
-            entry('INFRA_DATABASE_URL', 'postgresql+psycopg://tt_infra:change-me@tt-postgres-infra:5432/tt_infra_beta'),
+            entry('INFRA_DATABASE_URL', '', required=False),
             entry('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance'),
             entry('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads'),
         ),
         section(
             'Auth',
-            entry('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:change-me@tt-postgres-auth:5432/tt_auth_beta'),
+            entry('AUTH_DATABASE_URL', '', required=False),
             entry('JWT_EXPIRY_HOURS', '8'),
             entry('JWT_COOKIE_DOMAIN', '.thun-tigers.net'),
             entry('JWT_COOKIE_SECURE', 'true'),
@@ -352,12 +352,12 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Members',
-            entry('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:change-me@tt-postgres-members:5432/tt_members_beta'),
+            entry('MEMBERS_DATABASE_URL', '', required=False),
             entry('MEMBERS_SSO_EXPECTED_AUDIENCE', 'tt-members'),
         ),
         section(
             'Agenda',
-            entry('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:change-me@tt-postgres-agenda:5432/tt_agenda_beta'),
+            entry('AGENDA_DATABASE_URL', '', required=False),
             entry('AGENDA_WEBHOOK_ENABLED', 'false'),
             entry('AGENDA_WEBHOOK_URL', '', required=False),
             entry('AGENDA_SSO_EXPECTED_AUDIENCE', 'tt-agenda'),
@@ -366,7 +366,7 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Analytics',
-            entry('ANALYTICS_DATABASE_URL', 'postgresql+psycopg://tt_analytics:change-me@tt-postgres-analytics:5432/tt_analytics_beta'),
+            entry('ANALYTICS_DATABASE_URL', '', required=False),
             entry('ANALYTICS_SSO_EXPECTED_AUDIENCE', 'tt-analytics'),
             entry('ANALYTICS_SSO_AUTO_PROVISION_USERS', 'true'),
             entry('ANALYTICS_SSO_SYNC_ROLE', 'true'),
@@ -381,7 +381,7 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         ),
         section(
             'Attendance',
-            entry('ATTENDANCE_DATABASE_URL', 'postgresql+psycopg://tt_attendance:change-me@tt-postgres-attendance:5432/tt_attendance_beta'),
+            entry('ATTENDANCE_DATABASE_URL', '', required=False),
             entry('ATTENDANCE_SSO_EXPECTED_AUDIENCE', 'tt-attendance'),
         ),
         section(
