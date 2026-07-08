@@ -283,7 +283,10 @@ services:
       - tigers-internal
 
   tt-postgres:
-    image: postgres:16
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: ghcr.io/swisi/tt-postgres:latest
     environment:
       POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra}
       POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
@@ -307,7 +310,6 @@ services:
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra}"]
       interval: 10s

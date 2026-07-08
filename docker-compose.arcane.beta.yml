@@ -236,7 +236,8 @@ services:
       start_period: 20s
 
   tt-postgres:
-    image: postgres:16
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-postgres:${TT_POSTGRES_IMAGE_TAG:-beta}
+    pull_policy: always
     environment:
       POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
       POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
@@ -260,7 +261,6 @@ services:
       TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
       interval: 10s
