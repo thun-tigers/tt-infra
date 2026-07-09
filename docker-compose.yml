@@ -2,15 +2,13 @@ services:
   tt-infra:
     build: .
     image: ghcr.io/swisi/tt-infra:latest
-    ports:
-      - "8084:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
     environment:
       SECRET_KEY: ${INFRA_SECRET_KEY:-tt-infra-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:tt_infra_password@tt-postgres:5432/tt_infra}
-      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8080/auth}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
       MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres:5432/tt_members}
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres:5432/tt_auth}
@@ -44,8 +42,6 @@ services:
     build:
       context: ../tt-auth
     image: ghcr.io/swisi/tt-auth:latest
-    ports:
-      - "8085:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -61,14 +57,14 @@ services:
       CREATE_DEFAULT_SERVICES: "true"
       DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-admin}
-      DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL:-http://localhost:8088}
-      DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL:-http://localhost:8086}
-      DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL:-http://localhost:8087}
-      DEFAULT_INFRA_URL: ${DEFAULT_INFRA_URL:-http://localhost:8084}
+      DEFAULT_MEMBERS_URL: ${DEFAULT_MEMBERS_URL:-http://localhost:8080/members}
+      DEFAULT_AGENDA_URL: ${DEFAULT_AGENDA_URL:-http://localhost:8080/agenda}
+      DEFAULT_ANALYTICS_URL: ${DEFAULT_ANALYTICS_URL:-http://localhost:8080/analytics}
+      DEFAULT_INFRA_URL: ${DEFAULT_INFRA_URL:-http://localhost:8080/infra}
       DEFAULT_MEMBERS_INTERNAL_URL: ${DEFAULT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       DEFAULT_AGENDA_INTERNAL_URL: ${DEFAULT_AGENDA_INTERNAL_URL:-http://tt-agenda:5000}
       DEFAULT_ANALYTICS_INTERNAL_URL: ${DEFAULT_ANALYTICS_INTERNAL_URL:-http://tt-analytics:5000}
-      DEFAULT_ATTENDANCE_URL: ${DEFAULT_ATTENDANCE_URL:-http://localhost:8089}
+      DEFAULT_ATTENDANCE_URL: ${DEFAULT_ATTENDANCE_URL:-http://localhost:8080/attendance}
       DEFAULT_ATTENDANCE_INTERNAL_URL: ${DEFAULT_ATTENDANCE_INTERNAL_URL:-http://tt-attendance:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
@@ -95,8 +91,6 @@ services:
     build:
       context: ../tt-members
     image: ghcr.io/swisi/tt-members:latest
-    ports:
-      - "8088:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -104,7 +98,7 @@ services:
       SECRET_KEY: ${MEMBERS_SECRET_KEY:-tt-members-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:tt_members_password@tt-postgres:5432/tt_members}
       LOG_LEVEL: INFO
-      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8080/auth}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:-tt-sso-dev-secret-change-me}
@@ -138,15 +132,13 @@ services:
     build:
       context: ../tt-agenda
     image: ghcr.io/swisi/tt-agenda:latest
-    ports:
-      - "8086:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
     environment:
       SECRET_KEY: ${AGENDA_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
-      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8080/auth}
       TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
@@ -179,15 +171,13 @@ services:
     build:
       context: ../tt-analytics
     image: ghcr.io/swisi/tt-analytics:latest
-    ports:
-      - "8087:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
     environment:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY}
       SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
-      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8080/auth}
       TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_INFRA_INTERNAL_URL: ${TT_INFRA_INTERNAL_URL:-http://tt-infra:5000}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
@@ -229,15 +219,13 @@ services:
     build:
       context: ../tt-attendance
     image: ghcr.io/swisi/tt-attendance:latest
-    ports:
-      - "8089:5000"
     env_file:
       - path: ./instance/generated.env
         required: false
     environment:
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY:-tt-attendance-dev-secret}
       SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL:-postgresql+psycopg://tt_attendance:tt_attendance_password@tt-postgres:5432/tt_attendance}
-      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8085}
+      AUTH_BASE_URL: ${AUTH_BASE_URL:-http://localhost:8080/auth}
       TT_AUTH_INTERNAL_URL: ${TT_AUTH_INTERNAL_URL:-http://tt-auth:5000}
       TT_MEMBERS_INTERNAL_URL: ${TT_MEMBERS_INTERNAL_URL:-http://tt-members:5000}
       TT_AGENDA_INTERNAL_URL: ${TT_AGENDA_INTERNAL_URL:-http://tt-agenda:5000}
@@ -319,8 +307,7 @@ services:
     networks:
       - tigers-internal
 
-  # Lokaler Reverse Proxy — additiver Entry Point auf http://localhost:8080
-  # Routet /service/* → tt-service:5000 (Commit 1: nicht-breaking, alte Ports bleiben aktiv)
+  # Einziger Entry Point lokal: http://localhost:8080 (analog Beta)
   tt-proxy:
     image: caddy:2-alpine
     ports:
