@@ -344,6 +344,7 @@ services:
 networks:
   tigers-internal:
     name: tigers-beta-internal
+    external: true
 
 volumes:
   tt-infra-data:
