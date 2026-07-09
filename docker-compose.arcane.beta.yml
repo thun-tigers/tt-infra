@@ -134,6 +134,7 @@ services:
       SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_agenda_beta}
       AUTH_BASE_URL: https://beta.thun-tigers.net/auth
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       SSO_EXPECTED_AUDIENCE: tt-agenda
       SSO_AUTO_PROVISION_USERS: ${AGENDA_SSO_AUTO_PROVISION_USERS:-true}
       SSO_SYNC_ROLE: ${AGENDA_SSO_SYNC_ROLE:-true}
