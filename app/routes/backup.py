@@ -279,14 +279,16 @@ def _build_backup_archive():
 def _fix_auth_service_urls(auth_database_url: str) -> list[str]:
     """After restoring tt-auth DB, overwrite service URLs with values from the
     current platform-config.json so backup-restore never leaves stale URLs."""
-    from platform_config import load_profile_store, detect_profile
+    from platform_config import load_profile_store, detect_profile, profile_values
     import os
 
     store_path = Path(current_app.config.get('TT_CONFIG_STORE_PATH', ''))
     profile = detect_profile(os.environ)
 
     store = load_profile_store(store_path) if store_path.exists() else {}
-    values = store.get(profile, {})
+    # Use profile_values() so PUBLIC_BASE_URL-derived keys (DEFAULT_*_URL) are
+    # computed correctly — raw store entries never contain these derived keys.
+    values = profile_values(profile, overrides=store.get(profile, {}))
 
     service_map = {
         'members':    (values.get('DEFAULT_MEMBERS_URL'),    values.get('DEFAULT_MEMBERS_INTERNAL_URL',    'http://tt-members:5000')),
@@ -307,7 +309,7 @@ def _fix_auth_service_urls(auth_database_url: str) -> list[str]:
             if not url:
                 continue
             result = conn.execute(
-                text('UPDATE service SET url = :url, internal_url = :iurl WHERE name = :name'),
+                text('UPDATE services SET url = :url, internal_url = :iurl WHERE name = :name'),
                 {'url': url, 'iurl': internal_url, 'name': name},
             )
             if result.rowcount:

@@ -94,10 +94,20 @@ def create_app(config_class=Config):
             save_profile_store(store_path, store)
         active_profile = app.config['TT_CONFIG_PROFILE']
         app.config.update(profile_values(active_profile, overrides=store.get(active_profile, {})))
-        if os.environ.get('MEMBERS_INSTANCE_DIR'):
-            app.config['MEMBERS_INSTANCE_DIR'] = os.environ['MEMBERS_INSTANCE_DIR']
-        if os.environ.get('ANALYTICS_UPLOAD_ROOT'):
-            app.config['ANALYTICS_UPLOAD_ROOT'] = os.environ['ANALYTICS_UPLOAD_ROOT']
+        # Env vars for DB connections and critical paths always win over the profile store.
+        # The store may contain empty-string placeholders (e.g. beta profile defaults) that
+        # must not overwrite valid values injected by the container environment.
+        _ENV_PRIORITY_KEYS = [
+            'SQLALCHEMY_DATABASE_URI', 'DATABASE_URL',
+            'AUTH_DATABASE_URL', 'MEMBERS_DATABASE_URL', 'AGENDA_DATABASE_URL',
+            'ANALYTICS_DATABASE_URL', 'ATTENDANCE_DATABASE_URL',
+            'AUTH_BASE_URL', 'PUBLIC_BASE_URL',
+            'MEMBERS_INSTANCE_DIR', 'ANALYTICS_UPLOAD_ROOT',
+        ]
+        for _key in _ENV_PRIORITY_KEYS:
+            _val = os.environ.get(_key)
+            if _val:
+                app.config[_key] = _val
         if app.config.get('AUTO_CREATE_DB', True):
             db.create_all()
             _ensure_schema()
