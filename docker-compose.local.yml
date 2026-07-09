@@ -4,21 +4,41 @@ services:
       - "${INFRA_PORT:-8084}:5000"
 
   tt-auth:
+    environment:
+      PYTHONPATH: /opt/tt-common
+    volumes:
+      - ../tt-common:/opt/tt-common:ro
     ports:
       - "${AUTH_PORT:-8085}:5000"
 
   tt-members:
+    environment:
+      PYTHONPATH: /opt/tt-common
+    volumes:
+      - ../tt-common:/opt/tt-common:ro
     ports:
       - "${MEMBERS_PORT:-8088}:5000"
 
   tt-agenda:
+    environment:
+      PYTHONPATH: /opt/tt-common
+    volumes:
+      - ../tt-common:/opt/tt-common:ro
     ports:
       - "${AGENDA_PORT:-8086}:5000"
 
   tt-analytics:
+    environment:
+      PYTHONPATH: /opt/tt-common
+    volumes:
+      - ../tt-common:/opt/tt-common:ro
     ports:
       - "${ANALYTICS_PORT:-8087}:5000"
 
   tt-attendance:
+    environment:
+      PYTHONPATH: /opt/tt-common
+    volumes:
+      - ../tt-common:/opt/tt-common:ro
     ports:
       - "${ATTENDANCE_PORT:-8089}:5000"

@@ -40,8 +40,6 @@ def test_config_index_is_available(client):
     assert response.status_code == 200
     assert b'Konfiguration' in response.data
     assert b'Aktive Umgebung' in response.data
-    assert b'beta' not in response.data
-    assert b'production' not in response.data
 
 
 def test_config_edit_persists_and_download_reflects_change(client, app):

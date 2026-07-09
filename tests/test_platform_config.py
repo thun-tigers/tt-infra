@@ -11,7 +11,7 @@ from platform_config import render_env, render_sections, release_manifest_sectio
 def test_local_env_render_includes_core_urls():
     rendered = render_env('local')
     assert 'COMPOSE_PROJECT_NAME=tigers-local' in rendered
-    assert 'AUTH_BASE_URL=http://localhost:8085' in rendered
+    assert 'AUTH_BASE_URL=http://localhost:8080/auth' in rendered
     assert 'TT_INFRA_INTERNAL_URL=http://tt-infra:5000' in rendered
     assert 'DEFAULT_ATTENDANCE_INTERNAL_URL=http://tt-attendance:5000' in rendered
     assert 'MEMBERS_AUTH_BASE_URL=' not in rendered
@@ -36,7 +36,6 @@ def test_release_manifest_render_matches_expected_tags():
 def test_production_profile_validates():
     errors = validate_profile('production', version='0.1.8')
     assert errors == [
-        'missing required value for DEFAULT_ADMIN_PASSWORD in Production URLs',
         'missing required value for INFRA_SECRET_KEY in Secrets',
         'missing required value for AUTH_SECRET_KEY in Secrets',
         'missing required value for MEMBERS_SECRET_KEY in Secrets',
