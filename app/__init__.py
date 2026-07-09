@@ -103,6 +103,7 @@ def create_app(config_class=Config):
             'ANALYTICS_DATABASE_URL', 'ATTENDANCE_DATABASE_URL',
             'AUTH_BASE_URL', 'PUBLIC_BASE_URL',
             'MEMBERS_INSTANCE_DIR', 'ANALYTICS_UPLOAD_ROOT',
+            'SECRET_KEY', 'SSO_SHARED_SECRET', 'INTERNAL_API_SECRET',
         ]
         for _key in _ENV_PRIORITY_KEYS:
             _val = os.environ.get(_key)
