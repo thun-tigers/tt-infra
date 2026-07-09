@@ -9,6 +9,7 @@ from functools import wraps
 from pathlib import Path
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, session, url_for
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
 bp = Blueprint('backup', __name__)
@@ -275,6 +276,47 @@ def _build_backup_archive():
         raise
 
 
+def _fix_auth_service_urls(auth_database_url: str) -> list[str]:
+    """After restoring tt-auth DB, overwrite service URLs with values from the
+    current platform-config.json so backup-restore never leaves stale URLs."""
+    from platform_config import load_profile_store, detect_profile
+    import os
+
+    store_path = Path(current_app.config.get('TT_CONFIG_STORE_PATH', ''))
+    profile = detect_profile(os.environ)
+
+    store = load_profile_store(store_path) if store_path.exists() else {}
+    values = store.get(profile, {})
+
+    service_map = {
+        'members':    (values.get('DEFAULT_MEMBERS_URL'),    values.get('DEFAULT_MEMBERS_INTERNAL_URL',    'http://tt-members:5000')),
+        'agenda':     (values.get('DEFAULT_AGENDA_URL'),     values.get('DEFAULT_AGENDA_INTERNAL_URL',     'http://tt-agenda:5000')),
+        'analytics':  (values.get('DEFAULT_ANALYTICS_URL'),  values.get('DEFAULT_ANALYTICS_INTERNAL_URL',  'http://tt-analytics:5000')),
+        'infra':      (values.get('DEFAULT_INFRA_URL'),      values.get('DEFAULT_INFRA_INTERNAL_URL',      'http://tt-infra:5000')),
+        'attendance': (values.get('DEFAULT_ATTENDANCE_URL'), values.get('DEFAULT_ATTENDANCE_INTERNAL_URL', 'http://tt-attendance:5000')),
+    }
+
+    dsn = _postgres_dsn(auth_database_url)
+    if not dsn:
+        return []
+
+    updated = []
+    engine = create_engine(dsn)
+    with engine.connect() as conn:
+        for name, (url, internal_url) in service_map.items():
+            if not url:
+                continue
+            result = conn.execute(
+                text('UPDATE service SET url = :url, internal_url = :iurl WHERE name = :name'),
+                {'url': url, 'iurl': internal_url, 'name': name},
+            )
+            if result.rowcount:
+                updated.append(f'{name}: {url}')
+        conn.commit()
+    engine.dispose()
+    return updated
+
+
 def _restore_from_archive(archive_path):
     workdir = Path(tempfile.mkdtemp(prefix='tt-infra-restore-'))
     with tarfile.open(archive_path, 'r:*') as archive:
@@ -327,6 +369,15 @@ def _restore_from_archive(archive_path):
             if not ok:
                 restore_results.append(f'{name}: {error}')
                 success = False
+            elif name == 'tt-auth':
+                auth_url = database_urls.get('tt-auth')
+                try:
+                    fixed = _fix_auth_service_urls(auth_url)
+                    if fixed:
+                        current_app.logger.info('Service URLs nach Restore korrigiert: %s', '; '.join(fixed))
+                        restore_results.append(f'tt-auth service URLs korrigiert: {len(fixed)} Einträge')
+                except Exception as exc:
+                    current_app.logger.warning('Service-URL-Korrektur fehlgeschlagen: %s', exc)
             continue
 
         if kind == 'sqlite':
