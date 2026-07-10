@@ -18,21 +18,23 @@ tt-infra ist das zentrale Plattform-Repository fuer Infrastruktur, Deployment un
 - zentrale Anmeldung in `tt-auth`
 - Service-Start ueber `tt-auth`
 - kurzlebige SSO-Tokens fuer Zielservices
-- je Service eigene Postgres-Datenbank
-- spaeter optional Reverse Proxy, Redis, Monitoring
+- je Service eigene Postgres-Datenbank in einem gemeinsamen Postgres-Container
+- Reverse Proxy (Caddy) als einziger externer Einstieg, optional Redis, Monitoring
 
 Die ausfuehrliche Version liegt in `docs/stack-architecture.md`.
 
 ## Datenbankstrategie
 
-Jeder Service bekommt seine eigene Datenbank:
+Alle Services teilen sich einen einzigen Postgres-Container (`tt-postgres`, gebaut aus `Dockerfile.postgres`). Innerhalb dieses Containers legt das Init-Script anhand der `POSTGRES_*_USER/PASSWORD/DB` Env-Vars pro Service eine eigene Datenbank samt eigenem Benutzer an:
 
-- `tt-postgres-auth`
-- `tt-postgres-agenda`
-- `tt-postgres-analytics`
-- `tt-postgres-attendance`
+- `tt_auth`
+- `tt_members`
+- `tt_agenda`
+- `tt_attendance`
+- `tt_analytics`
+- `tt_infra`
 
-Dadurch bleiben Datenmodell, Migrationen und Deployments entkoppelt.
+Dadurch bleiben Datenmodell, Migrationen und Berechtigungen pro Service entkoppelt, ohne dass mehrere Postgres-Container betrieben werden muessen. Die persistente Ablage liegt im Docker-Volume `postgres-data`.
 
 ## Netzwerk
 

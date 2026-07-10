@@ -1,12 +1,14 @@
 # Datenmigration SQLite nach PostgreSQL
 
+Hinweis: Alle Postgres-Datenbanken laufen inzwischen in einem gemeinsamen Container `tt-postgres` (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`). Die untenstehenden Kommandos beziehen sich auf einzelne Datenbanken (`tt_auth`, `tt_agenda`, ...) innerhalb dieses Containers.
+
 ## Status
 
 Die Anwendungen `tt-auth`, `tt-agenda` und `tt-attendance` sind fuer PostgreSQL vorbereitet. Die vorhandenen SQLite-Daten liegen aktuell hier:
 
 - `../tt-auth/instance/auth.db`
 - `../tt-agenda/instance/trainings.db`
-- `tt-attendance` hat keinen SQLite-Standardpfad mehr; sie nutzt jetzt `tt-postgres-attendance`
+- `tt-attendance` hat keinen SQLite-Standardpfad mehr; sie nutzt jetzt die Datenbank `tt_attendance` in `tt-postgres`
 
 Aktueller Datenbestand:
 
@@ -21,14 +23,14 @@ Zusatz:
 ## Voraussetzungen
 
 - Docker Desktop oder ein laufender Docker-Daemon
-- `docker compose up -d tt-postgres-auth tt-postgres-agenda tt-postgres-attendance` in tt-infra
+- `docker compose up -d tt-postgres` in tt-infra (legt alle Service-Datenbanken beim ersten Start via Init-Script an)
 - Python mit `psycopg` verfuegbar
 
 ## Postgres starten
 
 ```bash
 cd /Users/swisi/Repos/tigers/tt-infra
-docker compose up -d tt-postgres-auth tt-postgres-agenda
+docker compose up -d tt-postgres
 ```
 
 ## Zielschema initialisieren
@@ -80,12 +82,7 @@ Nach der Migration:
 
 ## Backups
 
-Die produktiven Postgres-Daten liegen in eigenen Docker-Volumes:
-
-- `postgres-auth-data`
-- `postgres-agenda-data`
-- `postgres-attendance-data`
-- `postgres-analytics-data`
+Die produktiven Postgres-Daten liegen im gemeinsamen Docker-Volume `postgres-data` des Containers `tt-postgres`. Der Cluster enthaelt die Datenbanken `tt_auth`, `tt_members`, `tt_agenda`, `tt_attendance`, `tt_analytics` und `tt_infra`.
 
 Empfohlene Backups:
 

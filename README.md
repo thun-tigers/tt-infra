@@ -137,11 +137,12 @@ Alle fachlichen Services verwenden denselben Einstieg:
 - `tt-auth` startet den SSO-Flow
 - der Service nimmt das Token unter `/auth/sso` an und springt danach auf `/`
 
-Start auf Server (mit vorhandener .env.arcane.beta):
+Start auf Server (mit vorhandener `instance/generated.env`, siehe [`docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`](docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md)):
 
 ```bash
-docker compose --env-file .env.arcane.beta \
-	-f docker-compose.yml \
+./scripts/generate-env.sh beta
+docker compose \
+	--env-file ./instance/generated.env \
 	-f docker-compose.arcane.beta.yml \
 	up -d --build
 ```
@@ -158,6 +159,6 @@ docker compose --env-file .env.arcane.beta \
 ## Produktions-Releases
 
 - `releases/0.1.0.env` ist der erste zentrale Plattform-Release
-- `releases/0.1.8.env` ist der aktuelle freigegebene Plattform-Stand
+- `releases/0.1.16.env` ist der aktuelle freigegebene Plattform-Stand
 - die Datei pinnt die freigegebenen Image-Tags fuer `tt-infra`, `tt-auth`, `tt-members`, `tt-agenda`, `tt-analytics` und `tt-attendance`
 - die produktive Secret-Datei bleibt getrennt; das Release-Manifest liefert nur die Tag-Auswahl

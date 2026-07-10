@@ -28,21 +28,16 @@ tigers/
 
 ## Wichtige Hinweise
 
-- tt-auth, tt-agenda, tt-attendance und tt-analytics nutzen jeweils eigene Postgres-Datenbanken.
+- Alle Services nutzen jeweils eigene Postgres-Datenbanken innerhalb eines gemeinsamen `tt-postgres`-Containers.
 - tt-members, tt-analytics und tt-attendance sind fester Bestandteil des Standard-Stacks.
 - JWT_COOKIE_DOMAIN muss je Umgebung korrekt gesetzt sein (Beta: .thun-tigers.net).
 - Die zentrale Konfigurationsoberflaeche befindet sich in `tt-infra` unter `Admin -> Konfig` und gilt immer fuer die aktive Umgebung.
 
 ## Persistenz und Backups
 
-Die Datenbanken laufen in eigenen Docker-Volumes:
+Die Postgres-Daten liegen im gemeinsamen Docker-Volume `postgres-data` des Containers `tt-postgres`. Der Cluster enthaelt die Service-Datenbanken `tt_auth`, `tt_members`, `tt_agenda`, `tt_attendance`, `tt_analytics` und `tt_infra`.
 
-- `postgres-auth-data`
-- `postgres-agenda-data`
-- `postgres-attendance-data`
-- `postgres-analytics-data`
-
-Dadurch bleiben die Daten getrennt von den Applikationscontainern persistent. Fuer regelmaessige Backups sollte nicht das App-Dateisystem, sondern das jeweilige Postgres-Volume bzw. ein `pg_dump`-Prozess gesichert werden.
+Dadurch bleiben die Daten getrennt von den Applikationscontainern persistent. Fuer regelmaessige Backups sollte nicht das App-Dateisystem, sondern das Postgres-Volume bzw. ein `pg_dump`-Prozess pro Datenbank gesichert werden.
 
 Empfohlener Weg:
 
@@ -63,16 +58,16 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 Voraussetzungen:
 
-- .env.arcane.beta ist vorhanden
-- docker-compose.arcane.beta.yml ist vorhanden
+- `instance/platform-config.json` auf dem Beta-Server enthaelt die Secrets (einmalig ueber Config-UI oder manuell gesetzt)
+- `docker-compose.arcane.beta.yml` ist vorhanden
 - Quellcode der Services liegt auf dem Server in benachbarten Verzeichnissen
 
-Start oder Update:
+Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
 
 ```bash
-docker compose --env-file .env.arcane.beta \
-  -f docker-compose.yml \
-  -f docker-compose.local.yml \
+./scripts/generate-env.sh beta
+docker compose \
+  --env-file ./instance/generated.env \
   -f docker-compose.arcane.beta.yml \
   up -d --build
 ```
@@ -80,51 +75,37 @@ docker compose --env-file .env.arcane.beta \
 Status pruefen:
 
 ```bash
-docker compose --env-file .env.arcane.beta \
-  -f docker-compose.yml \
-  -f docker-compose.local.yml \
+docker compose \
+  --env-file ./instance/generated.env \
   -f docker-compose.arcane.beta.yml \
   ps
 ```
 
-### Portainer Beta
-
-Fuer einen image-basierten Stack in Portainer liegt eine eigenstaendige Compose-Datei bereit:
-
-- `docker-compose.portainer.beta.yml`
-- `.env.portainer.beta.example`
-
-Empfohlenes Modell:
-
-- `main` baut automatisch GHCR-Images mit dem Tag `beta`
-- Portainer zieht fuer Beta immer die `beta`-Tags
-- Deploy der Stack-Datei direkt aus dem Git-Repository oder per Copy/Paste in Portainer
-
 ### Arcane Beta mit Cloudflared Daemon
 
-Fuer den neuen Beta-Server mit Arcane und einem Cloudflared Daemon auf dem Host liegt eine eigene Anleitung bereit:
+Fuer den Beta-Server mit Arcane und einem Cloudflared Daemon auf dem Host liegt eine eigene Anleitung bereit:
 
 - `docs/beta-cloudflared-daemon.md`
 
-Arcane ist dabei nur das Docker-Verwaltungswerkzeug und wird nicht oeffentlich geroutet. Der oeffentliche Einstieg ist `https://beta.thun-tigers.net`; Cloudflare Tunnel leitet die Beta-Domains auf die lokalen `608x`-Ports der Services.
+Arcane ist dabei nur das Docker-Verwaltungswerkzeug und wird nicht oeffentlich geroutet. Der oeffentliche Einstieg ist `https://beta.thun-tigers.net`; Cloudflare Tunnel leitet die Domain pfad-basiert auf den Caddy-Reverse-Proxy (`tt-proxy`) im Stack.
 
-### Portainer Produktion
+### Produktion
 
-Fuer Produktion liegt ebenfalls eine image-basierte Compose-Datei bereit:
+Fuer Produktion liegt eine environment-basierte Konfiguration bereit:
 
-- `docker-compose.portainer.production.yml`
-- `.env.portainer.production.example`
-- `releases/*.env`
+- `.env.portainer.production.example` als Vorlage fuer Betriebsparameter und Secrets
+- `releases/*.env` fuer den freigegebenen Satz an Service-Versionen
+- Deployment erfolgt derzeit ebenfalls ueber `docker-compose.yml` in Verbindung mit `--env-file` (Secrets und Release-Manifest)
 
 Empfohlenes Modell:
 
 - Produktionsdeploys laufen ueber explizite Release-Tags wie `v1.0.0`
-- Die Production-Compose erwartet bewusst feste Image-Tags pro Service
-- Portainer deployt damit reproduzierbar und ohne implizite `latest`-Updates
+- Feste Image-Tags pro Service werden ueber ein Release-Manifest (`releases/X.Y.Z.env`) gepinnt
+- Damit wird reproduzierbar und ohne implizite `latest`-Updates deployt
 
 Empfohlene Trennung:
 
-- `.env.production` oder Portainer-Umgebungsvariablen fuer Secrets und Betriebsparameter
+- Environment-Datei (aus `.env.portainer.production.example` abgeleitet) fuer Secrets und Betriebsparameter
 - `releases/X.Y.Z.env` fuer den freigegebenen Satz an Service-Versionen
 
 ## CI/CD Image-Strategie
@@ -162,25 +143,26 @@ Empfohlener Ablauf:
 
 ## Release-Manifeste in tt-infra
 
-Fuer freigegebene Plattform-Staende liegt in `tt-infra/releases` je Release eine eigene Manifest-Datei:
+Fuer freigegebene Plattform-Staende liegt in `tt-infra/releases` je Release eine eigene Manifest-Datei, aktuell z.B.:
 
-- `releases/0.1.0.env`
+- `releases/0.1.16.env`
 
-Diese Dateien enthalten nur:
+Diese Dateien enthalten die Image-Tags pro Service, u.a.:
 
 - `TT_INFRA_IMAGE_TAG`
 - `TT_AUTH_IMAGE_TAG`
 - `TT_MEMBERS_IMAGE_TAG`
 - `TT_AGENDA_IMAGE_TAG`
 - `TT_ANALYTICS_IMAGE_TAG`
+- `TT_ATTENDANCE_IMAGE_TAG`
 
-Beispiel fuer einen Produktions-Check:
+Beispiel fuer einen Produktions-Check (Env-Datei aus `.env.portainer.production.example` abgeleitet):
 
 ```bash
 docker compose \
-  --env-file .env.production \
-  --env-file releases/0.1.0.env \
-  -f docker-compose.portainer.production.yml \
+  --env-file .env.portainer.production \
+  --env-file releases/0.1.16.env \
+  -f docker-compose.yml \
   config
 ```
 
@@ -188,22 +170,21 @@ Beispiel fuer ein Deploy:
 
 ```bash
 docker compose \
-  --env-file .env.production \
-  --env-file releases/0.1.0.env \
-  -f docker-compose.portainer.production.yml \
+  --env-file .env.portainer.production \
+  --env-file releases/0.1.16.env \
+  -f docker-compose.yml \
   pull
 
 docker compose \
-  --env-file .env.production \
-  --env-file releases/0.1.0.env \
-  -f docker-compose.portainer.production.yml \
+  --env-file .env.portainer.production \
+  --env-file releases/0.1.16.env \
+  -f docker-compose.yml \
   up -d
 ```
 
-Portainer-Hinweis:
+Hinweis:
 
-- wenn Portainer keine zwei `.env`-Dateien elegant kombiniert, bleiben die Secrets in Portainer
-- die fuenf `TT_*_IMAGE_TAG` Werte werden dann aus dem gewuenschten Release-Manifest manuell uebernommen
+- Wenn das Deployment-Tool nur eine `.env`-Datei akzeptiert, koennen Secrets und Release-Manifest per `scripts/render_arcane_env.py` zu einer kombinierten Datei zusammengefuehrt werden.
 
 ## Release-Werkzeuge
 
@@ -236,8 +217,8 @@ Bestandsnotiz:
 ## Cloudflare Tunnel
 
 - Cloudflare bleibt der externe Edge-Layer fuer DNS, TLS, WAF und Tunnel-Terminierung.
-- Der Cloudflared Daemon auf dem Server leitet die Beta-Hostnames auf die lokalen `608x`-Ports der Services.
-- Pfadbasiertes Routing wurde bewusst nicht als Standardmodell gewaehlt, weil die bestehenden Apps sauberer ueber eigene Subdomains betrieben werden koennen.
+- Der Cloudflared Daemon leitet `beta.thun-tigers.net` pfad-basiert auf den Caddy-Reverse-Proxy (`tt-proxy`) im Stack (`http://host.docker.internal:80`).
+- Details siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md` und `docs/beta-cloudflared-daemon.md`.
 
 ## Bekannte Betriebsnotiz
 
