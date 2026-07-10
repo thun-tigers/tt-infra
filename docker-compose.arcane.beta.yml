@@ -28,6 +28,7 @@ services:
       SECRET_KEY: ${INFRA_SECRET_KEY:?INFRA_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL:-postgresql+psycopg://tt_infra:${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_infra_beta}
       AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+psycopg://tt_auth:${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_auth_beta}
       MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL:-postgresql+psycopg://tt_members:${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_members_beta}
       AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL:-postgresql+psycopg://tt_agenda:${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}@tt-postgres:5432/tt_agenda_beta}

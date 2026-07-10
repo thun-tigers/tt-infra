@@ -35,16 +35,16 @@ echo "  attendance: $ATTENDANCE_URL"
 echo ""
 
 SQL="
-UPDATE service SET url = '$MEMBERS_URL'   WHERE name = 'members';
-UPDATE service SET url = '$AGENDA_URL'    WHERE name = 'agenda';
-UPDATE service SET url = '$ANALYTICS_URL' WHERE name = 'analytics';
-UPDATE service SET url = '$INFRA_URL'     WHERE name = 'infra';
-UPDATE service SET url = '$ATTENDANCE_URL' WHERE name = 'attendance';
-UPDATE service SET internal_url = 'http://tt-members:5000'   WHERE name = 'members';
-UPDATE service SET internal_url = 'http://tt-agenda:5000'    WHERE name = 'agenda';
-UPDATE service SET internal_url = 'http://tt-analytics:5000' WHERE name = 'analytics';
-UPDATE service SET internal_url = 'http://tt-infra:5000'     WHERE name = 'infra';
-UPDATE service SET internal_url = 'http://tt-attendance:5000' WHERE name = 'attendance';
+UPDATE services SET url = '$MEMBERS_URL'   WHERE name = 'members';
+UPDATE services SET url = '$AGENDA_URL'    WHERE name = 'agenda';
+UPDATE services SET url = '$ANALYTICS_URL' WHERE name = 'analytics';
+UPDATE services SET url = '$INFRA_URL'     WHERE name = 'infra';
+UPDATE services SET url = '$ATTENDANCE_URL' WHERE name = 'attendance';
+UPDATE services SET internal_url = 'http://tt-members:5000'   WHERE name = 'members';
+UPDATE services SET internal_url = 'http://tt-agenda:5000'    WHERE name = 'agenda';
+UPDATE services SET internal_url = 'http://tt-analytics:5000' WHERE name = 'analytics';
+UPDATE services SET internal_url = 'http://tt-infra:5000'     WHERE name = 'infra';
+UPDATE services SET internal_url = 'http://tt-attendance:5000' WHERE name = 'attendance';
 "
 
 docker compose exec tt-postgres psql -U tt_auth -d tt_auth -c "$SQL"

@@ -14,6 +14,7 @@ class Config:
     AUTO_CREATE_DB = os.environ.get('AUTO_CREATE_DB', 'true').lower() == 'true'
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
     AUTH_BASE_URL = os.environ.get('AUTH_BASE_URL', 'http://localhost:8085')
+    TT_AUTH_INTERNAL_URL = os.environ.get('TT_AUTH_INTERNAL_URL', 'http://tt-auth:5000')
     SSO_SHARED_SECRET = os.environ.get('SSO_SHARED_SECRET') or SECRET_KEY
     AUTH_DATABASE_URL = os.environ.get('AUTH_DATABASE_URL', 'postgresql+psycopg://tt_auth:tt_auth_password@tt-postgres-auth:5432/tt_auth')
     AGENDA_DATABASE_URL = os.environ.get('AGENDA_DATABASE_URL', 'postgresql+psycopg://tt_agenda:tt_agenda_password@tt-postgres-agenda:5432/tt_agenda')

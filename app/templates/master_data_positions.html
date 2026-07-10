@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% block title %}Stammdaten: Positionen – Tigers Infra{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <div>
+        <h1 class="text-lg font-bold text-slate-900 dark:text-white">Stammdaten: Positionen</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Zentrale Liste für Profil und Agenda.</p>
+    </div>
+    <div class="flex items-center justify-end">
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('master_data.services') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+                <i class="bi bi-app-indicator"></i> Services
+            </a>
+        </div>
+    </div>
+
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-semibold">Vorhandene Positionen</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ziehen zum Sortieren. Direkt in der Zeile bearbeiten.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-slate-500 dark:text-slate-400 mr-2">{{ positions|length }} Einträge</span>
+                <button type="button" class="add-new-btn inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 font-semibold rounded-lg transition text-sm">
+                    <i class="bi bi-plus-lg"></i> Neu
+                </button>
+                <button type="button" class="save-order-btn inline-flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <i class="bi bi-check-lg"></i> Speichern
+                </button>
+            </div>
+        </div>
+        <div id="new-position-panel" class="hidden px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/20">
+            <form method="POST" action="{{ url_for('master_data.positions_new') }}" class="grid grid-cols-1 md:grid-cols-[140px_1fr_auto_auto] gap-3 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Schlüssel</label>
+                    <input id="new-position-key" type="text" name="key" maxlength="40" required placeholder="QB"
+                        class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm uppercase">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bezeichnung</label>
+                    <input type="text" name="label" maxlength="100" required placeholder="Quarterback"
+                        class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm">
+                </div>
+                <input id="new-position-sort-order" type="hidden" name="sort_order" value="{{ (positions|length) + 1 }}">
+                <button type="button" id="new-position-cancel" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                    Abbrechen
+                </button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm">
+                    <i class="bi bi-plus-lg"></i> Speichern
+                </button>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="js-smart-table w-full text-sm" data-table-filter-placeholder="Positionen filtern...">
+                <thead class="bg-slate-50 dark:bg-slate-700/50">
+                    <tr>
+                        <th class="w-10 px-4 py-3"></th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Schlüssel</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Bezeichnung</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="positions-table-body" class="divide-y divide-slate-100 dark:divide-slate-700">
+            {% for position in positions %}
+                    <tr class="position-row {% if not position.is_active %}bg-slate-50 dark:bg-slate-900/30{% endif %}"
+                        data-key="{{ position.key }}"
+                        data-edit-url="{{ url_for('master_data.positions_edit', key=position.key) }}"
+                        draggable="true">
+                        <td class="px-4 py-3 align-middle">
+                            <button type="button" class="drag-handle view-mode inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200 cursor-grab" title="Reihenfolge ändern">
+                                <i class="bi bi-grip-vertical"></i>
+                            </button>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold uppercase tracking-wide">
+                                <span class="sort-number inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-white/70 dark:bg-slate-800 text-[11px]">{{ position.sort_order }}</span>
+                                <span>{{ position.key }}</span>
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="view-mode label-display font-medium text-slate-900 dark:text-white">{{ position.label }}</span>
+                            <input class="edit-mode hidden w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                                   type="text" name="label" value="{{ position.label }}" maxlength="100">
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="view-mode status-badge {% if position.is_active %}inline-flex px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium{% else %}inline-flex px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium{% endif %}">
+                                {% if position.is_active %}Aktiv{% else %}Inaktiv{% endif %}
+                            </span>
+                            <label class="edit-mode hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                                <input type="checkbox" name="is_active" value="y" {% if position.is_active %}checked{% endif %} class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
+                                Aktiv
+                            </label>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <div class="view-mode flex items-center justify-end gap-1">
+                                <button type="button" class="edit-toggle p-2 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('master_data.positions_delete', key=position.key) }}" onsubmit="return confirm('Position {{ position.key }} wirklich löschen?')">
+                                    <button type="submit" class="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition" title="Löschen">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="edit-mode hidden flex items-center justify-end gap-2">
+                                <button type="button" class="cancel-edit px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                                    Abbrechen
+                                </button>
+                                <button type="button" class="save-edit inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition disabled:opacity-50">
+                                    <i class="bi bi-check-lg"></i> Speichern
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+            {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                            Keine Positionen vorhanden.
+                        </td>
+                    </tr>
+            {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-2 bg-slate-50/40 dark:bg-slate-900/20">
+            <button type="button" class="add-new-btn inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 font-semibold rounded-lg transition text-sm">
+                <i class="bi bi-plus-lg"></i> Neu
+            </button>
+            <button type="button" class="save-order-btn inline-flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="bi bi-check-lg"></i> Speichern
+            </button>
+        </div>
+        <form id="position-order-form" method="POST" action="{{ url_for('master_data.positions_reorder') }}"></form>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const body = document.getElementById('positions-table-body');
+    const orderForm = document.getElementById('position-order-form');
+    const saveButtons = Array.from(document.querySelectorAll('.save-order-btn'));
+    const addButtons = Array.from(document.querySelectorAll('.add-new-btn'));
+    const newPanel = document.getElementById('new-position-panel');
+    const newCancel = document.getElementById('new-position-cancel');
+    const newKeyInput = document.getElementById('new-position-key');
+    const newSortOrderInput = document.getElementById('new-position-sort-order');
+
+    if (!body || !orderForm || !newPanel || !newCancel || !newSortOrderInput) return;
+
+    const rows = () => Array.from(body.querySelectorAll('.position-row'));
+    let orderChanged = false;
+
+    const setOrderChanged = (changed) => {
+        orderChanged = changed;
+        saveButtons.forEach((btn) => { btn.disabled = !orderChanged; });
+    };
+
+    const updateSortNumbers = () => {
+        rows().forEach((row, index) => {
+            const badge = row.querySelector('.sort-number');
+            if (badge) badge.textContent = String(index + 1);
+        });
+    };
+
+    const syncOrder = () => {
+        orderForm.querySelectorAll('input[name="order"]').forEach((el) => el.remove());
+        rows().forEach((row) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'order';
+            input.value = row.dataset.key;
+            orderForm.appendChild(input);
+        });
+        updateSortNumbers();
+    };
+
+    const toggleNewPanel = (show) => {
+        newPanel.classList.toggle('hidden', !show);
+        if (show) {
+            newSortOrderInput.value = String(rows().length + 1);
+            newKeyInput?.focus();
+        }
+    };
+
+    const setEditMode = (row, editing) => {
+        row.querySelectorAll('.view-mode').forEach((el) => el.classList.toggle('hidden', editing));
+        row.querySelectorAll('.edit-mode').forEach((el) => el.classList.toggle('hidden', !editing));
+        row.draggable = !editing;
+        if (editing) row.querySelector('input[name="label"]')?.focus();
+    };
+
+    const closeAllEditors = () => rows().forEach((row) => setEditMode(row, false));
+
+    addButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            closeAllEditors();
+            toggleNewPanel(true);
+        });
+    });
+
+    newCancel.addEventListener('click', () => toggleNewPanel(false));
+
+    saveButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            syncOrder();
+            orderForm.submit();
+        });
+    });
+
+    body.addEventListener('click', async (event) => {
+        const editBtn = event.target.closest('.edit-toggle');
+        if (editBtn) {
+            toggleNewPanel(false);
+            const row = editBtn.closest('.position-row');
+            const isEditing = !row.querySelector('.edit-mode').classList.contains('hidden');
+            closeAllEditors();
+            if (!isEditing) setEditMode(row, true);
+            return;
+        }
+
+        const cancelBtn = event.target.closest('.cancel-edit');
+        if (cancelBtn) {
+            setEditMode(cancelBtn.closest('.position-row'), false);
+            return;
+        }
+
+        const saveBtn = event.target.closest('.save-edit');
+        if (saveBtn) {
+            const row = saveBtn.closest('.position-row');
+            const url = row.dataset.editUrl;
+            const label = row.querySelector('input[name="label"]').value.trim();
+            const isActive = row.querySelector('input[name="is_active"]').checked;
+            const sortOrder = row.querySelector('.sort-number').textContent;
+
+            const formData = new FormData();
+            formData.append('label', label);
+            if (isActive) formData.append('is_active', 'y');
+            formData.append('sort_order', sortOrder);
+
+            saveBtn.disabled = true;
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    row.querySelector('.label-display').textContent = label;
+                    const badge = row.querySelector('.status-badge');
+                    if (isActive) {
+                        badge.textContent = 'Aktiv';
+                        badge.className = 'view-mode status-badge inline-flex px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium';
+                    } else {
+                        badge.textContent = 'Inaktiv';
+                        badge.className = 'view-mode status-badge inline-flex px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium';
+                    }
+                    setEditMode(row, false);
+                } else {
+                    alert(data.error || 'Fehler beim Speichern.');
+                }
+            } catch {
+                alert('Fehler beim Speichern.');
+            } finally {
+                saveBtn.disabled = false;
+            }
+            return;
+        }
+    });
+
+    let draggedRow = null;
+
+    rows().forEach((row) => {
+        row.addEventListener('dragstart', () => {
+            draggedRow = row;
+            row.classList.add('opacity-50');
+            closeAllEditors();
+        });
+        row.addEventListener('dragend', () => {
+            row.classList.remove('opacity-50');
+            draggedRow = null;
+        });
+        row.addEventListener('dragover', (event) => event.preventDefault());
+        row.addEventListener('drop', (event) => {
+            event.preventDefault();
+            if (!draggedRow || draggedRow === row) return;
+            const rowRect = row.getBoundingClientRect();
+            const dropAfter = event.clientY > rowRect.top + rowRect.height / 2;
+            if (dropAfter) {
+                row.insertAdjacentElement('afterend', draggedRow);
+            } else {
+                body.insertBefore(draggedRow, row);
+            }
+            syncOrder();
+            setOrderChanged(true);
+        });
+    });
+
+    syncOrder();
+    setOrderChanged(false);
+})();
+</script>
+{% endblock %}

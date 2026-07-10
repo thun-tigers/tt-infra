@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPOS=(tt-auth tt-members tt-agenda tt-analytics tt-infra)
+REPOS=(tt-common tt-auth tt-members tt-agenda tt-attendance tt-analytics tt-infra)
 VERSION="${1:-}"
 MODE="${2:---dry-run}"
 

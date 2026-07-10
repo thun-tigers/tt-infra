@@ -138,6 +138,14 @@ def _backup_manifest():
     }
 
 
+def _is_forbidden_config_member(member_name: str) -> bool:
+    member_path = Path(member_name).as_posix()
+    return member_path in {
+        'payload/platform-config.json',
+        'payload/generated.env',
+    } or member_path.startswith('payload/config/')
+
+
 def _current_user():
     if not session.get('user_id'):
         return None
@@ -322,7 +330,10 @@ def _fix_auth_service_urls(auth_database_url: str) -> list[str]:
 def _restore_from_archive(archive_path):
     workdir = Path(tempfile.mkdtemp(prefix='tt-infra-restore-'))
     with tarfile.open(archive_path, 'r:*') as archive:
-        archive.extractall(workdir, filter='data')
+        members = archive.getmembers()
+        allowed_members = [member for member in members if not _is_forbidden_config_member(member.name)]
+        skipped_members = [member.name for member in members if _is_forbidden_config_member(member.name)]
+        archive.extractall(workdir, members=allowed_members, filter='data')
 
     payload_root = workdir / 'payload'
     manifest_path = payload_root / 'manifest.json'
@@ -338,6 +349,11 @@ def _restore_from_archive(archive_path):
     infra_db_path = _sqlite_url_path(current_app.config.get('SQLALCHEMY_DATABASE_URI'))
 
     restore_results = []
+    if skipped_members:
+        restore_results.append(
+            'Konfigurationsartefakte im Backup wurden absichtlich übersprungen: '
+            + ', '.join(sorted(skipped_members))
+        )
 
     sqlite_restore_map = {
         'tt-infra': infra_db_path,

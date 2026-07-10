@@ -23,4 +23,8 @@ fi
 
 echo "→ docker compose up -d $*"
 cd "$REPO_ROOT"
-docker compose --env-file ./instance/generated.env up -d "$@"
+COMPOSE_FILES=(-f docker-compose.yml)
+if [ -f docker-compose.local.yml ]; then
+    COMPOSE_FILES+=(-f docker-compose.local.yml)
+fi
+docker compose --env-file ./instance/generated.env "${COMPOSE_FILES[@]}" up -d "$@"

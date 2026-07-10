@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPOS=(tt-auth tt-members tt-agenda tt-analytics tt-infra)
+REPOS=(tt-common tt-auth tt-members tt-agenda tt-attendance tt-analytics tt-infra)
 EXPECTED_VERSION="${1:-}"
 HAS_FAILURE=0
 
@@ -29,14 +29,23 @@ for repo in "${REPOS[@]}"; do
     continue
   fi
 
-  if [[ ! -f "${REPO_DIR}/VERSION" ]]; then
-    echo "FAIL: missing VERSION file"
-    HAS_FAILURE=1
-    echo
-    continue
+  if [[ "${repo}" == "tt-common" ]]; then
+    if [[ ! -f "${REPO_DIR}/pyproject.toml" ]]; then
+      echo "FAIL: missing pyproject.toml"
+      HAS_FAILURE=1
+      echo
+      continue
+    fi
+    VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${REPO_DIR}/pyproject.toml")"
+  else
+    if [[ ! -f "${REPO_DIR}/VERSION" ]]; then
+      echo "FAIL: missing VERSION file"
+      HAS_FAILURE=1
+      echo
+      continue
+    fi
+    VERSION="$(tr -d '[:space:]' < "${REPO_DIR}/VERSION")"
   fi
-
-  VERSION="$(tr -d '[:space:]' < "${REPO_DIR}/VERSION")"
   BRANCH="$(git -C "${REPO_DIR}" branch --show-current)"
   STATUS="$(git -C "${REPO_DIR}" status --short)"
 

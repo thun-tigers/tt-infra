@@ -51,11 +51,13 @@ def create_app(config_class=Config):
     from .routes.admin import bp as admin_bp
     from .routes.config import bp as config_bp
     from .routes.backup import bp as backup_bp
+    from .routes.master_data import bp as master_data_bp
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(backup_bp)
+    app.register_blueprint(master_data_bp)
 
     # Zentrales UI-Layout aus tt-common
     from tt_common import register_shared_ui
