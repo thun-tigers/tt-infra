@@ -41,7 +41,7 @@ Weitere Repos können später dazukommen. Bei neuen Repos diese Liste aktualisie
 
 ## Aktueller Architekturstand
 
-- Aktueller Release-Stand: `v0.1.15`
+- Aktueller Release-Stand: `v0.1.16`
 - Local Entry Point: `http://localhost:8080`
 - Beta Entry Point: `https://beta.thun-tigers.net`
 - Zentrale Config-Schicht liegt in `tt-infra`
