@@ -60,3 +60,7 @@ services:
       - ../tt-common:/opt/tt-common:ro
     ports:
       - "${ATTENDANCE_PORT:-8089}:5000"
+
+  tt-postgres:
+    ports:
+      - "5432:5432"
