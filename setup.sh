@@ -350,6 +350,11 @@ build_env_file() {
         beta) db_suffix="_beta" ;;
     esac
 
+    local tt_infra_image_tag="v${version}"
+    case "$PROFILE" in
+        beta) tt_infra_image_tag="beta" ;;
+    esac
+
     cat > "$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=${project_name}
 TZ=Europe/Zurich
@@ -368,7 +373,7 @@ DEFAULT_INFRA_URL=${public_base_url}/infra
 JWT_COOKIE_DOMAIN=${cookie_domain}
 JWT_COOKIE_SECURE=true
 
-TT_INFRA_IMAGE_TAG=v${version}
+TT_INFRA_IMAGE_TAG=${tt_infra_image_tag}
 TT_AUTH_IMAGE_TAG=v${version}
 TT_MEMBERS_IMAGE_TAG=v${version}
 TT_AGENDA_IMAGE_TAG=v${version}
