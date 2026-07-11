@@ -58,17 +58,23 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 
 Voraussetzungen:
 
-- `instance/platform-config.json` auf dem Beta-Server enthaelt die Secrets (einmalig ueber Config-UI oder manuell gesetzt)
-- `docker-compose.arcane.beta.yml` ist vorhanden
-- Quellcode der Services liegt auf dem Server in benachbarten Verzeichnissen
+- fuer einen Blank-Server: nur `tt-infra` selbst muss vorhanden sein, die Fachservices werden als GHCR-Images gezogen
+- `instance/platform-config.json` enthaelt die Secrets und wird vom Bootstrap oder der Config-UI erstellt
+- `docker-compose.beta.yml` ist vorhanden
 
 Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
+
+```bash
+./setup.sh beta
+```
+
+Oder manuell:
 
 ```bash
 ./scripts/generate-env.sh beta
 docker compose \
   --env-file ./instance/generated.env \
-  -f docker-compose.arcane.beta.yml \
+  -f docker-compose.beta.yml \
   up -d --build
 ```
 
@@ -77,7 +83,7 @@ Status pruefen:
 ```bash
 docker compose \
   --env-file ./instance/generated.env \
-  -f docker-compose.arcane.beta.yml \
+  -f docker-compose.beta.yml \
   ps
 ```
 

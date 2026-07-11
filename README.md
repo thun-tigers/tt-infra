@@ -75,6 +75,16 @@ Oder manuell:
 
 Die direkten Service-Ports (8084–8089) sind lokal noch aktiv und koennen parallel verwendet werden.
 
+## Blank-Server-Bootstrap fuer Beta
+
+Auf einem leeren Server werden keine Fachservice-Repositories benoetigt. Das Bootstrap-`setup.sh` klont nur `tt-infra` selbst, erzeugt die Konfiguration und startet den Beta-Stack ueber GHCR-Images.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/v0.1.20/setup.sh -o /tmp/tt-infra-setup.sh
+chmod +x /tmp/tt-infra-setup.sh
+TT_INFRA_REPO_DIR=/opt/tigers/tt-infra TT_INFRA_CLONE_REF=v0.1.20 /tmp/tt-infra-setup.sh beta
+```
+
 ## Deployment-Modi
 
 - docker-compose.yml zentraler Stack mit Caddy-Reverse-Proxy (Port 8080) und direkten Service-Ports

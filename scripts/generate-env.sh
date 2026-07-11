@@ -3,7 +3,7 @@
 # Wird einmalig vor dem ersten "docker compose up" benötigt.
 #
 # Verwendung:
-#   ./scripts/generate-env.sh [local|beta|production]
+#   ./scripts/generate-env.sh [--version X.Y.Z] [local|beta|production]
 #
 # Danach:
 #   docker compose --env-file ./instance/generated.env up -d --build
@@ -13,9 +13,36 @@
 
 set -euo pipefail
 
-PROFILE="${1:-local}"
+PROFILE="local"
+VERSION=""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --version)
+            [ "$#" -ge 2 ] || { echo "ERROR: --version braucht ein Argument" >&2; exit 1; }
+            VERSION="$2"
+            shift 2
+            ;;
+        local|beta|production)
+            PROFILE="$1"
+            shift
+            ;;
+        -h|--help)
+            echo "Verwendung: ./scripts/generate-env.sh [--version X.Y.Z] [local|beta|production]"
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unbekanntes Argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$VERSION" ] && [ "$PROFILE" != "local" ] && [ -f "$REPO_ROOT/VERSION" ]; then
+    VERSION="$(tr -d '\n' < "$REPO_ROOT/VERSION")"
+fi
 
 # Venv bevorzugen, falls vorhanden
 if [ -f "$REPO_ROOT/.venv/bin/python" ]; then
@@ -30,6 +57,9 @@ ENV_FILE="$REPO_ROOT/instance/generated.env"
 
 echo "→ Generiere instance/generated.env für Profil '$PROFILE' ..."
 ARGS=(generate --profile "$PROFILE")
+if [ -n "$VERSION" ]; then
+    ARGS+=(--version "$VERSION")
+fi
 "$PYTHON" "$SCRIPT_DIR/render_platform_env.py" "${ARGS[@]}"
 
 echo ""
@@ -44,4 +74,8 @@ for KEY in PUBLIC_BASE_URL AUTH_BASE_URL DEFAULT_MEMBERS_URL DEFAULT_AGENDA_URL 
     fi
 done
 echo ""
-echo "→ Bereit: docker compose --env-file ./instance/generated.env up -d --build"
+if [ -n "$VERSION" ]; then
+    echo "→ Bereit: docker compose --env-file ./instance/generated.env up -d --build"
+else
+    echo "→ Bereit: docker compose --env-file ./instance/generated.env up -d --build"
+fi
