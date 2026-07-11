@@ -89,6 +89,10 @@ PY
         | cut -c1-"$length"
 }
 
+volume_exists() {
+    docker volume inspect "$1" >/dev/null 2>&1
+}
+
 port_is_free() {
     local port="$1"
     if command -v python3 >/dev/null 2>&1; then
@@ -500,8 +504,22 @@ cookie_domain_default="$(derive_cookie_domain "$PUBLIC_BASE_URL")"
 prompt_value COOKIE_DOMAIN_INPUT "JWT Cookie Domain" "$cookie_domain_default" 0
 JWT_COOKIE_DOMAIN="${COOKIE_DOMAIN_INPUT:-$cookie_domain_default}"
 
-default_project_name="$(basename "$WORKDIR" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
-[ -n "$default_project_name" ] || default_project_name="tigers"
+case "$PROFILE" in
+    local)
+        default_project_name="$(basename "$WORKDIR" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
+        [ -n "$default_project_name" ] || default_project_name="tigers-local"
+        ;;
+    beta)
+        default_project_name="tigers-beta"
+        ;;
+    production)
+        default_project_name="tigers-prod"
+        ;;
+    *)
+        default_project_name="$(basename "$WORKDIR" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
+        [ -n "$default_project_name" ] || default_project_name="tigers"
+        ;;
+esac
 prompt_value COMPOSE_PROJECT_NAME "Compose Project Name" "$default_project_name" 0
 
 default_internal_network_name="${default_project_name}-internal"
@@ -527,6 +545,16 @@ trap cleanup_on_error ERR
 require_cmd docker
 docker info >/dev/null 2>&1 || die "Docker-Daemon laeuft nicht oder ist nicht erreichbar."
 docker compose version >/dev/null 2>&1 || die "Docker Compose ist nicht verfuegbar."
+
+case "$PROFILE" in
+    beta) expected_postgres_volume="tigers-beta-postgres-data" ;;
+    production) expected_postgres_volume="tigers-prod-postgres-data" ;;
+    local) expected_postgres_volume="postgres-data" ;;
+esac
+
+if volume_exists "$expected_postgres_volume" && [ ! -f "$ENV_FILE" ] && [ ! -f "$INSTANCE_DIR/generated.env" ]; then
+    die "Bestehendes Volume '$expected_postgres_volume' gefunden, aber keine gespeicherten Secrets in .env oder instance/generated.env. Stelle die alten Secrets wieder her oder lösche die Volumes vor einem frischen Setup."
+fi
 
 if docker network inspect "$INTERNAL_NETWORK_NAME" >/dev/null 2>&1; then
     INTERNAL_NETWORK_EXTERNAL="true"
