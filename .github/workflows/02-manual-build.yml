@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to publish (e.g. dev, hotfix, test)"
+        description: "Image tag to publish (e.g. v0.1.19, beta, hotfix)"
         required: true
         default: dev
+        type: string
+      tt_common_tag:
+        description: "tt-common base image tag (latest, beta, v0.1.19)"
+        required: false
+        default: latest
         type: string
 
 env:
@@ -43,7 +48,6 @@ jobs:
         shell: bash
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
-          IMAGE_OWNER: thun-tigers
         run: |
           tag="$(printf '%s' "$INPUT_TAG" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 
@@ -68,6 +72,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.prepare.outputs.image_ref }}
+          build-args: TT_COMMON_TAG=${{ github.event.inputs.tt_common_tag || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
@@ -78,73 +83,6 @@ jobs:
           echo "## Manual build published" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- Image: \`${{ steps.prepare.outputs.image_ref }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Digest: \`${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-
-  build-and-push-postgres:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.tag }}-postgres
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Validate image tag
-        id: prepare
-        shell: bash
-        env:
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-          IMAGE_OWNER: thun-tigers
-        run: |
-          tag="$(printf '%s' "$INPUT_TAG" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
-
-          if [ -z "$tag" ]; then
-            echo "Image tag must not be empty." >&2
-            exit 1
-          fi
-
-          if [[ ! "$tag" =~ ^[a-z0-9_][a-z0-9_.-]{0,127}$ ]]; then
-            echo "Invalid Docker tag: $tag" >&2
-            exit 1
-          fi
-
-          image_ref="${REGISTRY}/${IMAGE_OWNER}/tt-postgres:${tag}"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "image_ref=$image_ref" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push tt-postgres image
-        id: build
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.postgres
-          push: true
-          tags: ${{ steps.prepare.outputs.image_ref }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-
-      - name: Image summary
-        shell: bash
-        run: |
-          echo "## tt-postgres manual build published" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Image: \`${{ steps.prepare.outputs.image_ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- tt-common base: \`${{ github.event.inputs.tt_common_tag || 'latest' }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Digest: \`${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
