@@ -32,6 +32,7 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 - docker-compose.local.yml lokale Port-Freigaben fuer Entwicklung
 - docker-compose.arcane.beta.yml Beta-Stack fuer Arcane plus Cloudflared Daemon
 - platform_config.py zentrale Quelle fuer die Platform-Profile
+- config_store.py DB-gestuetzte Config-Persistenz und Export-Logik
 - app/routes/config.py Konfigurationsoberflaeche fuer die aktuelle Umgebung und Exporte
 - app/templates/config/ UI fuer die laufende Umgebung
 - scripts/render_platform_env.py Generator fuer `.env`-Dateien und Release-Manifeste
@@ -48,7 +49,7 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 ## Schnellstart (lokal)
 
 1. Repositories tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance lokal neben dieses Repo legen.
-2. Stack mit einem Befehl starten — `generated.env` wird automatisch erstellt:
+2. Stack mit einem Befehl starten — `setup.sh` initialisiert den lokalen Store, erzeugt `generated.env`, startet zuerst Postgres und danach den restlichen Stack:
 
 ```bash
 ./setup.sh
@@ -93,13 +94,14 @@ Die direkten Service-Ports (8084–8089) sind lokal noch aktiv und koennen paral
 ### Lokal auf dem Entwickler-Laptop
 
 ```bash
-./setup.sh                         # Erststart: env generieren + Stack bauen
+./setup.sh                         # Erststart: Store + env initialisieren, Postgres + Stack starten
 ./scripts/deploy.sh                # Neustart ohne Rebuild
 ./scripts/deploy.sh --build        # Neustart mit Rebuild
 ./scripts/generate-env.sh local    # Nur generated.env aktualisieren
 ```
 
-Config-UI (Secrets, URLs, Profil-Werte): `http://localhost:8080/infra/config`
+Config-UI (DB-basierte Secrets, URLs, Profil-Werte): `http://localhost:8080/infra/config`
+Die UI schreibt dabei `instance/platform-config.json` als öffentlichen Export und `instance/secrets.local.json` fuer Secrets.
 
 ### URL-Ableitung
 
@@ -159,6 +161,6 @@ docker compose \
 ## Produktions-Releases
 
 - `releases/0.1.0.env` ist der erste zentrale Plattform-Release
-- `releases/0.1.16.env` ist der aktuelle freigegebene Plattform-Stand
+- `releases/0.1.20.env` ist der aktuelle freigegebene Plattform-Stand
 - die Datei pinnt die freigegebenen Image-Tags fuer `tt-infra`, `tt-auth`, `tt-members`, `tt-agenda`, `tt-analytics` und `tt-attendance`
 - die produktive Secret-Datei bleibt getrennt; das Release-Manifest liefert nur die Tag-Auswahl

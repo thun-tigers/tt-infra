@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from config_store import platform_settings, platform_secrets
+from app.extensions import db
 from platform_config import profile_sections
 
 
@@ -55,6 +57,29 @@ def test_config_edit_persists_and_download_reflects_change(client, app):
     updated_store = json.loads(store_path.read_text(encoding='utf-8'))
     assert updated_store['local']['LOG_LEVEL'] == 'DEBUG'
     assert app.config['LOG_LEVEL'] == 'DEBUG'
+    assert 'INFRA_SECRET_KEY' not in store_path.read_text(encoding='utf-8')
+
+    secrets_path = Path(app.instance_path) / 'secrets.local.json'
+    assert secrets_path.exists()
+    assert 'INFRA_SECRET_KEY=' in secrets_path.read_text(encoding='utf-8')
+
+    with app.app_context():
+        row = db.session.execute(
+            platform_settings.select().where(
+                platform_settings.c.profile == 'local',
+                platform_settings.c.key == 'LOG_LEVEL',
+            )
+        ).first()
+        assert row is not None
+        assert row._mapping['value'] == 'DEBUG'
+        secret_row = db.session.execute(
+            platform_secrets.select().where(
+                platform_secrets.c.profile == 'local',
+                platform_secrets.c.key == 'INFRA_SECRET_KEY',
+            )
+        ).first()
+        assert secret_row is not None
+        assert secret_row._mapping['value']
 
     download_response = client.get('/config/download')
     assert download_response.status_code == 200

@@ -17,7 +17,7 @@ Gemeinsamer Neustart:
 - `tt-agenda`: `0.1.0`
 - `tt-analytics`: `0.1.0`
 - `tt-attendance`: `0.1.0`
-- `tt-infra`: `0.1.16`
+- `tt-infra`: `0.1.20`
 
 Verfuegbare Manifeste in `releases/`:
 
@@ -32,6 +32,7 @@ Verfuegbare Manifeste in `releases/`:
 - `releases/0.1.14.env`
 - `releases/0.1.15.env`
 - `releases/0.1.16.env`
+- `releases/0.1.20.env`
 
 Die Manifest-Datei pinnt die Image-Tags fuer:
 
@@ -54,7 +55,7 @@ Voraussetzungen:
 Readiness-Check:
 
 ```bash
-./tt-infra/scripts/check_release_readiness.sh 0.1.16
+./tt-infra/scripts/check_release_readiness.sh 0.1.20
 ```
 
 Der Check prueft:
@@ -69,19 +70,19 @@ Der Check prueft:
 Dry Run:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.16 --dry-run
+./tt-infra/scripts/tag_release.sh 0.1.20 --dry-run
 ```
 
 Lokale Tags erstellen:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.16 --apply
+./tt-infra/scripts/tag_release.sh 0.1.20 --apply
 ```
 
 Lokale Tags erstellen und pushen:
 
 ```bash
-./tt-infra/scripts/tag_release.sh 0.1.16 --push
+./tt-infra/scripts/tag_release.sh 0.1.20 --push
 ```
 
 Hinweis:
@@ -93,12 +94,12 @@ Hinweis:
 
 In jedem Repository:
 
-- GitHub Actions baut `ghcr.io/<owner>/<repo>:v0.1.0`
+- GitHub Actions baut `ghcr.io/<owner>/<repo>:v0.1.20`
 - GitHub Actions erstellt ein GitHub Release
 
 In `tt-infra`:
 
-- `releases/0.1.16.env` bleibt die zentrale Referenz fuer diesen Plattform-Stand
+- `releases/0.1.20.env` bleibt die zentrale Referenz fuer diesen Plattform-Stand
 
 ## Neue Plattform-Releases
 

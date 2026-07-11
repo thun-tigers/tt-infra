@@ -29,6 +29,22 @@ def section(title: str, *entries: EnvEntry) -> EnvSection:
 
 
 PROFILE_NAMES = ('local', 'beta', 'production')
+SECRET_MARKERS = ('SECRET', 'PASSWORD', 'TOKEN', 'API_KEY')
+BOOLEAN_HINTS = (
+    '_ENABLED',
+    '_SECURE',
+    'AUTO_PROVISION',
+    'SYNC_ROLE',
+    'CREATE_DEFAULT_USERS',
+    'CREATE_DEFAULT_SERVICES',
+)
+NUMBER_HINTS = (
+    '_PORT',
+    '_HOURS',
+    '_SECONDS',
+    '_RETRIES',
+    'MAX_CONTENT_LENGTH',
+)
 
 # Keys derived at render time from PUBLIC_BASE_URL.
 # They appear in generated.env for backwards compat but are NOT stored in
@@ -41,6 +57,20 @@ PUBLIC_DERIVED_KEYS: frozenset[str] = frozenset({
     'DEFAULT_INFRA_URL',
     'DEFAULT_ATTENDANCE_URL',
 })
+
+
+def is_secret_key(key: str) -> bool:
+    return any(marker in key for marker in SECRET_MARKERS)
+
+
+def infer_field_kind(key: str) -> str:
+    if is_secret_key(key):
+        return 'password'
+    if any(hint in key for hint in BOOLEAN_HINTS):
+        return 'checkbox'
+    if any(hint in key for hint in NUMBER_HINTS):
+        return 'number'
+    return 'text'
 
 
 def _image_tag_entries(version: str) -> tuple[EnvEntry, ...]:

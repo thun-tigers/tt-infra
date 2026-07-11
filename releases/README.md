@@ -11,14 +11,14 @@ Grundsatz:
 Beispiel:
 
 - `releases/0.1.0.env` pinnt alle Services auf den gemeinsamen Start-Release `v0.1.0`
-- `releases/0.1.10.env` pinnt den aktuellen Plattform-Stand auf `v0.1.10`
+- `releases/0.1.20.env` pinnt den aktuellen Plattform-Stand auf `v0.1.20`
 
 Verwendung mit Docker Compose:
 
 ```bash
 docker compose \
   --env-file .env.arcane.beta \
-  --env-file releases/0.1.10.env \
+  --env-file releases/0.1.20.env \
   -f docker-compose.arcane.beta.yml \
   config
 ```
@@ -29,7 +29,7 @@ Verwendung in Arcane:
 - Environment-Variablen aus der Stack-`.env` setzen
 - zusaetzlich die Variablen aus dem gewuenschten Release-Manifest uebernehmen
 - die Compose-Datei selbst muss fuer einen Versionssprung nicht angepasst werden, solange die Image-Tags ueber das Manifest kommen
-- wenn Arcane nur eine Env-Datei akzeptiert, die Basis-Env mit dem Manifest vorab mergen, zum Beispiel mit `python scripts/render_arcane_env.py --base .env.arcane.beta --overlay releases/0.1.10.env --output .env.arcane.beta.v0.1.10`
+- wenn Arcane nur eine Env-Datei akzeptiert, die Basis-Env mit dem Manifest vorab mergen, zum Beispiel mit `python scripts/render_arcane_env.py --base .env.arcane.beta --overlay releases/0.1.20.env --output .env.arcane.beta.v0.1.20`
 
 Konvention:
 

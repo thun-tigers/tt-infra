@@ -84,7 +84,7 @@ curl -si http://localhost:8080/members/ | grep -E '^(HTTP|Location)'
 
 ### Vorbedingungen
 
-1. `instance/platform-config.json` auf dem Beta-Server enthält Secrets (oder ist vorhanden und wird von der Config-UI befüllt).
+1. `instance/platform-config.json` und `instance/secrets.local.json` auf dem Beta-Server werden von der Config-UI befüllt.
 2. Cloudflare Tunnel ist konfiguriert: `beta.thun-tigers.net` → `http://host.docker.internal:80` (zeigt auf Caddy, **nicht** mehr auf einzelne Service-Ports).
 
 ### Beta-Deploy (Neuaufbau)
@@ -93,7 +93,7 @@ curl -si http://localhost:8080/members/ | grep -E '^(HTTP|Location)'
 # Auf dem Beta-Server:
 cd /opt/tigers/tt-infra
 
-# Secrets in platform-config.json setzen (einmalig über Config-UI oder manuell)
+# Secrets in der Config-UI setzen (einmalig, danach werden `instance/platform-config.json` und `instance/secrets.local.json` exportiert)
 # Dann:
 ./scripts/generate-env.sh beta
 docker compose \
@@ -246,7 +246,8 @@ tt-auth (Seeding beim Start)
 | Datei | Zweck |
 |---|---|
 | `platform_config.py` | Zentrale Konfig-Quelle, definiert alle Env-Vars pro Profil |
-| `instance/platform-config.json` | Laufzeit-Overrides (Secrets), gitignored |
+| `instance/platform-config.json` | Laufzeit-Overrides ohne Secrets, gitignored |
+| `instance/secrets.local.json` | Laufzeit-Secrets, gitignored |
 | `instance/generated.env` | Gerendertes Artefakt für Docker Compose, gitignored |
 | `scripts/generate-env.sh` | Erzeugt `generated.env` ohne laufenden Stack |
 | `scripts/deploy.sh` | Startet Stack mit `generated.env` |

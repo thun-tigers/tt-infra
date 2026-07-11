@@ -9,7 +9,13 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .extensions import db
 from .models import PositionGroup
-from platform_config import detect_profile, load_profile_store, profile_values, save_profile_store
+from config_store import (
+    ensure_schema,
+    export_profile_store_to_path,
+    export_secret_store_to_path,
+    load_profile_store_from_db,
+)
+from platform_config import detect_profile, profile_values
 
 
 POSITION_GROUP_DEFAULTS = [
@@ -91,9 +97,11 @@ def create_app(config_class=Config):
 
     with app.app_context():
         store_path = Path(app.config['TT_CONFIG_STORE_PATH'])
-        store = load_profile_store(store_path)
-        if not store_path.exists():
-            save_profile_store(store_path, store)
+        db.create_all()
+        ensure_schema(db.engine)
+        store = load_profile_store_from_db(db.engine, fallback_path=store_path)
+        export_profile_store_to_path(store_path, store)
+        export_secret_store_to_path(Path(app.instance_path) / 'secrets.local.json', store)
         active_profile = app.config['TT_CONFIG_PROFILE']
         app.config.update(profile_values(active_profile, overrides=store.get(active_profile, {})))
         # Env vars for DB connections and critical paths always win over the profile store.

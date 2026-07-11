@@ -9,7 +9,7 @@
 #   docker compose --env-file ./instance/generated.env up -d --build
 #
 # Für beta/production müssen die Secrets zuerst in der Config-UI (/config)
-# oder direkt in instance/platform-config.json gesetzt werden.
+# oder in den exportierten Laufzeitdateien unter instance/ gesetzt werden.
 
 set -euo pipefail
 
@@ -29,7 +29,8 @@ fi
 ENV_FILE="$REPO_ROOT/instance/generated.env"
 
 echo "→ Generiere instance/generated.env für Profil '$PROFILE' ..."
-"$PYTHON" "$SCRIPT_DIR/render_platform_env.py" generate --profile "$PROFILE"
+ARGS=(generate --profile "$PROFILE")
+"$PYTHON" "$SCRIPT_DIR/render_platform_env.py" "${ARGS[@]}"
 
 echo ""
 echo "Public URLs:"
