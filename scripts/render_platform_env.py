@@ -60,6 +60,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Profile to generate (default: local).',
     )
     generate_parser.add_argument(
+        '--version', help='Release version used for image tags, for example 0.1.8.',
+    )
+    generate_parser.add_argument(
         '--store', type=Path, default=None,
         help='Path to platform-config.json (default: <repo>/instance/platform-config.json).',
     )
