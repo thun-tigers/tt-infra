@@ -1,30 +1,26 @@
 #!/usr/bin/env bash
 # Bootstrap fuer tt-infra.
 #
-# Verwendungsmodelle:
-# - lokal aus einem bestehenden Checkout: ./setup.sh
-# - blanker Server: Script herunterladen, in /tmp ausfuehren und das Repo
-#   automatisch nach /opt/tigers/tt-infra klonen
+# Ziel:
+# - im aktuellen Verzeichnis arbeiten
+# - kein git clone benoetigen
+# - auf einem leeren VPS optional ein Archiv direkt in das Zielverzeichnis
+#   entpacken
 #
 # Profile:
-# - local: lokaler Docker-Stack neben den Service-Checkouts
-# - beta: kompletter Server-Stack mit GHCR-Images
-# - production: kompletter Produktions-Stack mit Release-Manifests
+# - local
+# - beta
+# - production
 
 set -Eeuo pipefail
 
-DEFAULT_REPO_URL="https://github.com/thun-tigers/tt-infra.git"
-DEFAULT_REPO_DIR="${TT_INFRA_REPO_DIR:-/opt/tigers/tt-infra}"
-DEFAULT_REPO_REF="${TT_INFRA_CLONE_REF:-main}"
-
+WORKDIR="${TT_INFRA_WORKDIR:-$PWD}"
 PROFILE="${TT_INFRA_PROFILE:-}"
-REPO_URL="${TT_INFRA_REPO_URL:-$DEFAULT_REPO_URL}"
-REPO_DIR="$DEFAULT_REPO_DIR"
-REPO_REF="$DEFAULT_REPO_REF"
+ARCHIVE_REF="${TT_INFRA_ARCHIVE_REF:-main}"
+ARCHIVE_URL="${TT_INFRA_ARCHIVE_URL:-https://github.com/thun-tigers/tt-infra/archive/refs/heads/${ARCHIVE_REF}.tar.gz}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 DEFAULT_ADMIN_USERNAME="${DEFAULT_ADMIN_USERNAME:-admin}"
 DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
-SKIP_CLONE="${TT_INFRA_SKIP_CLONE:-0}"
 
 log() { printf '%s\n' "$*"; }
 info() { printf '→ %s\n' "$*"; }
@@ -36,31 +32,35 @@ require_cmd() {
 }
 
 is_repo_root() {
-    [ -f "$1/platform_config.py" ] && [ -f "$1/docker-compose.yml" ]
+    [ -f "$1/platform_config.py" ] && [ -f "$1/docker-compose.yml" ] && [ -f "$1/scripts/generate-env.sh" ]
 }
 
-bootstrap_repo() {
-    if is_repo_root "$REPO_DIR"; then
+ensure_source_tree() {
+    if is_repo_root "$WORKDIR"; then
         return 0
     fi
 
-    if [ "$SKIP_CLONE" = "1" ]; then
-        die "Repo nicht gefunden: $REPO_DIR"
+    mkdir -p "$WORKDIR"
+
+    if [ -n "$(find "$WORKDIR" -mindepth 1 -maxdepth 1 ! -name 'setup.sh' -print -quit 2>/dev/null || true)" ]; then
+        die "Aktuelles Verzeichnis ist nicht leer und enthaelt noch keinen tt-infra-Checkout: $WORKDIR"
     fi
 
-    require_cmd git
-    mkdir -p "$(dirname "$REPO_DIR")"
-    if [ -e "$REPO_DIR" ]; then
-        if [ "$REPO_DIR" = "$SOURCE_DIR" ]; then
-            die "Download bitte in ein anderes Verzeichnis legen, z.B. /tmp, oder TT_INFRA_REPO_DIR auf ein leeres Ziel setzen."
-        fi
-        if [ -n "$(find "$REPO_DIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null || true)" ]; then
-            die "Zielverzeichnis ist nicht leer: $REPO_DIR"
-        fi
+    info "Lade tt-infra-Archiv in $WORKDIR ..."
+    if command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
+        curl -fsSL "$ARCHIVE_URL" | tar -xz --strip-components=1 -C "$WORKDIR"
+        return 0
     fi
 
-    info "Klonen von $REPO_URL nach $REPO_DIR ..."
-    git clone --depth 1 --branch "$REPO_REF" "$REPO_URL" "$REPO_DIR"
+    if command -v docker >/dev/null 2>&1; then
+        docker run --rm -v "$WORKDIR:/work" -w /work alpine:3.20 sh -ec "
+            apk add --no-cache curl tar >/dev/null
+            curl -fsSL '$ARCHIVE_URL' | tar -xz --strip-components=1 -C /work
+        "
+        return 0
+    fi
+
+    die "Weder curl+tar noch Docker sind verfuegbar, um das Archiv zu laden."
 }
 
 cleanup_on_error() {
@@ -70,9 +70,9 @@ cleanup_on_error() {
     if command -v docker >/dev/null 2>&1 && [ -f "$ENV_FILE" ]; then
         if docker compose version >/dev/null 2>&1; then
             warn "Aktueller Stack-Status:"
-            (cd "$REPO_ROOT" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps) >&2 || true
+            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps) >&2 || true
             warn "Letzte Postgres-Logs:"
-            (cd "$REPO_ROOT" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" logs --no-color --tail=80 tt-postgres) >&2 || true
+            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" logs --no-color --tail=80 tt-postgres) >&2 || true
         fi
     fi
     exit "$exit_code"
@@ -85,7 +85,7 @@ wait_for_postgres() {
     info "Warte auf Postgres-Readiness ..."
     while [ "$SECONDS" -lt "$deadline" ]; do
         local container_id status
-        container_id="$(cd "$REPO_ROOT" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps -q tt-postgres 2>/dev/null || true)"
+        container_id="$(cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps -q tt-postgres 2>/dev/null || true)"
         if [ -n "$container_id" ]; then
             status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
             if [ "$status" = "healthy" ]; then
@@ -122,7 +122,6 @@ version = sys.argv[6].strip()
 
 repo_root = repo_store.parents[1]
 sys.path.insert(0, str(repo_root))
-
 from platform_config import load_profile_store, profile_sections, profile_values, save_profile_store  # noqa: E402
 
 
@@ -140,12 +139,9 @@ def random_secret() -> str:
 
 
 def derive_db_url(prefix: str, values: dict[str, str]) -> str:
-    user_key = f'POSTGRES_{prefix}_USER'
-    password_key = f'POSTGRES_{prefix}_PASSWORD'
-    db_key = f'POSTGRES_{prefix}_DB'
-    user = values.get(user_key) or ''
-    password = values.get(password_key) or ''
-    database = values.get(db_key) or ''
+    user = values.get(f'POSTGRES_{prefix}_USER') or ''
+    password = values.get(f'POSTGRES_{prefix}_PASSWORD') or ''
+    database = values.get(f'POSTGRES_{prefix}_DB') or ''
     return f'postgresql+psycopg://{user}:{password}@tt-postgres:5432/{database}'
 
 
@@ -156,27 +152,22 @@ values.update(defaults)
 
 if public_base_url:
     values['PUBLIC_BASE_URL'] = public_base_url.rstrip('/')
-
-if profile == 'local' and not public_base_url:
+elif profile == 'local':
     values['PUBLIC_BASE_URL'] = defaults.get('PUBLIC_BASE_URL', 'http://localhost:8080')
 
 values['DEFAULT_ADMIN_USERNAME'] = admin_username or values.get('DEFAULT_ADMIN_USERNAME', 'admin') or 'admin'
-    if admin_password:
-        values['DEFAULT_ADMIN_PASSWORD'] = admin_password
-    elif profile == 'local':
-        values['DEFAULT_ADMIN_PASSWORD'] = values.get('DEFAULT_ADMIN_PASSWORD') or 'admin'
-    elif is_placeholder(values.get('DEFAULT_ADMIN_PASSWORD', '')):
-        values['DEFAULT_ADMIN_PASSWORD'] = random_secret()
+if admin_password:
+    values['DEFAULT_ADMIN_PASSWORD'] = admin_password
+elif profile == 'local':
+    values['DEFAULT_ADMIN_PASSWORD'] = values.get('DEFAULT_ADMIN_PASSWORD') or 'admin'
+elif is_placeholder(values.get('DEFAULT_ADMIN_PASSWORD', '')):
+    values['DEFAULT_ADMIN_PASSWORD'] = random_secret()
 
 for section in profile_sections(profile, version=version):
     for item in section.entries:
         key = item.key
         current = values.get(key, '')
-        if key == 'PUBLIC_BASE_URL' and values.get(key):
-            continue
-        if key == 'DEFAULT_ADMIN_USERNAME':
-            continue
-        if key == 'DEFAULT_ADMIN_PASSWORD':
+        if key in {'PUBLIC_BASE_URL', 'DEFAULT_ADMIN_USERNAME', 'DEFAULT_ADMIN_PASSWORD'}:
             continue
         if key.endswith('_DATABASE_URL'):
             continue
@@ -209,8 +200,8 @@ Verwendung:
   ./setup.sh [local|beta|production]
   ./setup.sh --profile <local|beta|production>
 
-Um einen blanken Server zu bootstrapen:
-  TT_INFRA_REPO_DIR=/opt/tigers/tt-infra TT_INFRA_CLONE_REF=v0.1.20 ./setup.sh beta
+Wenn das aktuelle Verzeichnis noch leer ist:
+  TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
 EOF
                 exit 0
                 ;;
@@ -219,24 +210,16 @@ EOF
                 PROFILE="$2"
                 shift 2
                 ;;
-            --repo-url)
-                [ "$#" -ge 2 ] || die "--repo-url braucht ein Argument"
-                REPO_URL="$2"
+            --archive-url)
+                [ "$#" -ge 2 ] || die "--archive-url braucht ein Argument"
+                ARCHIVE_URL="$2"
                 shift 2
                 ;;
-            --repo-dir)
-                [ "$#" -ge 2 ] || die "--repo-dir braucht ein Argument"
-                REPO_DIR="$2"
+            --archive-ref)
+                [ "$#" -ge 2 ] || die "--archive-ref braucht ein Argument"
+                ARCHIVE_REF="$2"
+                ARCHIVE_URL="https://github.com/thun-tigers/tt-infra/archive/refs/heads/${ARCHIVE_REF}.tar.gz"
                 shift 2
-                ;;
-            --ref|--branch|--tag)
-                [ "$#" -ge 2 ] || die "$1 braucht ein Argument"
-                REPO_REF="$2"
-                shift 2
-                ;;
-            --skip-clone)
-                SKIP_CLONE=1
-                shift
                 ;;
             local|beta|production)
                 PROFILE="$1"
@@ -249,38 +232,27 @@ EOF
     done
 }
 
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 parse_args "$@"
+ensure_source_tree
 
-if [ -z "$PROFILE" ]; then
-    if is_repo_root "$SOURCE_DIR"; then
-        PROFILE="local"
-    else
-        PROFILE="beta"
-    fi
-fi
-
-bootstrap_repo
-REPO_ROOT="$REPO_DIR"
+WORKDIR="$(cd "$WORKDIR" && pwd)"
+REPO_ROOT="$WORKDIR"
 INSTANCE_DIR="$REPO_ROOT/instance"
 STORE_PATH="$INSTANCE_DIR/platform-config.json"
 ENV_FILE="$INSTANCE_DIR/generated.env"
 
 case "$PROFILE" in
     local)
-        if [ -z "$PUBLIC_BASE_URL" ]; then
-            PUBLIC_BASE_URL="http://localhost:8080"
-        fi
+        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://localhost:8080}"
+        COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.local.yml)
         ;;
     beta)
-        if [ -z "$PUBLIC_BASE_URL" ]; then
-            PUBLIC_BASE_URL="https://beta.thun-tigers.net"
-        fi
+        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}"
+        COMPOSE_FILES=(-f docker-compose.beta.yml)
         ;;
     production)
-        if [ -z "$PUBLIC_BASE_URL" ]; then
-            PUBLIC_BASE_URL="https://thun-tigers.net"
-        fi
+        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://thun-tigers.net}"
+        COMPOSE_FILES=(-f docker-compose.prod.yml)
         ;;
     *)
         die "Unbekanntes Profil: $PROFILE"
@@ -288,21 +260,9 @@ case "$PROFILE" in
 esac
 
 if [ ! -f "$REPO_ROOT/VERSION" ]; then
-    die "VERSION-Datei fehlt im Repo: $REPO_ROOT"
+    die "VERSION-Datei fehlt im aktuellen Verzeichnis: $REPO_ROOT"
 fi
 VERSION="$(tr -d '\n' < "$REPO_ROOT/VERSION")"
-
-case "$PROFILE" in
-    local)
-        COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.local.yml)
-        ;;
-    beta)
-        COMPOSE_FILES=(-f docker-compose.beta.yml)
-        ;;
-    production)
-        COMPOSE_FILES=(-f docker-compose.prod.yml)
-        ;;
-esac
 
 trap cleanup_on_error ERR
 
@@ -332,12 +292,11 @@ fi
 info "Initialisiere Konfigurationsstore fuer Profil '$PROFILE' ..."
 seed_output="$(seed_profile_store "$PROFILE" "$PUBLIC_BASE_URL" "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" "$VERSION")"
 
-GENERATED_PUBLIC_BASE_URL=""
-GENERATED_ADMIN_USERNAME=""
-GENERATED_ADMIN_PASSWORD=""
+GENERATED_ADMIN_USERNAME="$DEFAULT_ADMIN_USERNAME"
+GENERATED_ADMIN_PASSWORD="$DEFAULT_ADMIN_PASSWORD"
 while IFS='=' read -r key value; do
     case "$key" in
-        PUBLIC_BASE_URL) GENERATED_PUBLIC_BASE_URL="$value" ;;
+        PUBLIC_BASE_URL) PUBLIC_BASE_URL="$value" ;;
         DEFAULT_ADMIN_USERNAME) GENERATED_ADMIN_USERNAME="$value" ;;
         DEFAULT_ADMIN_PASSWORD) GENERATED_ADMIN_PASSWORD="$value" ;;
     esac
@@ -371,13 +330,13 @@ case "$PROFILE" in
 esac
 printf '\n'
 log "Gespeicherte Konfiguration:"
-log "  Repo        : $REPO_ROOT"
+log "  Verzeichnis : $REPO_ROOT"
 log "  Store       : $STORE_PATH"
 log "  generated.env: $ENV_FILE"
 printf '\n'
 log "Initiale Login-Daten:"
 log "  Benutzer    : ${GENERATED_ADMIN_USERNAME:-$DEFAULT_ADMIN_USERNAME}"
-if [ -n "$GENERATED_ADMIN_PASSWORD" ]; then
+if [ -n "${GENERATED_ADMIN_PASSWORD:-}" ]; then
     log "  Passwort    : $GENERATED_ADMIN_PASSWORD"
 else
     log "  Passwort    : (nicht neu generiert)"

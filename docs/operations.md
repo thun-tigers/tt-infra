@@ -71,9 +71,9 @@ Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
 Blank-Server-Bootstrap:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o /tmp/tt-infra-setup.sh
-chmod +x /tmp/tt-infra-setup.sh
-TT_INFRA_REPO_DIR=/opt/tigers/tt-infra TT_INFRA_CLONE_REF=v0.1.20 /tmp/tt-infra-setup.sh beta
+curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
+chmod +x setup.sh
+TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
 ```
 
 Oder manuell:

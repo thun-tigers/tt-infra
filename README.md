@@ -77,12 +77,12 @@ Die direkten Service-Ports (8084–8089) sind lokal noch aktiv und koennen paral
 
 ## Blank-Server-Bootstrap fuer Beta
 
-Auf einem leeren Server werden keine Fachservice-Repositories benoetigt. Das Bootstrap-`setup.sh` klont nur `tt-infra` selbst, erzeugt die Konfiguration und startet den Beta-Stack ueber GHCR-Images.
+Auf einem leeren Server werden keine Fachservice-Repositories benoetigt. Das Bootstrap-`setup.sh` arbeitet im aktuellen Verzeichnis, kann bei Bedarf ein Archiv direkt dort entpacken, erzeugt die Konfiguration und startet den Beta-Stack ueber GHCR-Images.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o /tmp/tt-infra-setup.sh
-chmod +x /tmp/tt-infra-setup.sh
-TT_INFRA_REPO_DIR=/opt/tigers/tt-infra TT_INFRA_CLONE_REF=v0.1.20 /tmp/tt-infra-setup.sh beta
+curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
+chmod +x setup.sh
+TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
 ```
 
 ## Deployment-Modi
