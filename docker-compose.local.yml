@@ -45,4 +45,4 @@ services:
 
   tt-postgres:
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"

@@ -21,6 +21,7 @@ ARCHIVE_URL="${TT_INFRA_ARCHIVE_URL:-https://github.com/thun-tigers/tt-infra/arc
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 ADMIN_USERNAME="${DEFAULT_ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
+REUSE_EXISTING_SECRETS="${REUSE_EXISTING_SECRETS:-1}"
 
 log() { printf '%s\n' "$*"; }
 info() { printf '→ %s\n' "$*"; }
@@ -31,13 +32,110 @@ require_cmd() {
     command -v "$1" >/dev/null 2>&1 || die "Fehlendes Kommando: $1"
 }
 
+env_file_value() {
+    local file="$1"
+    local key="$2"
+    [ -f "$file" ] || return 1
+    awk -F= -v wanted="$key" '
+        $0 !~ /^[[:space:]]*#/ && $1 == wanted {
+            sub(/^[^=]*=/, "", $0)
+            print
+            exit 0
+        }
+    ' "$file"
+}
+
+resolve_env_value() {
+    local key="$1"
+    local default_value="$2"
+    local value=""
+
+    if [ "$REUSE_EXISTING_SECRETS" = "1" ]; then
+        value="$(env_file_value "$ENV_FILE" "$key" || true)"
+        if [ -z "$value" ] && [ -f "$INSTANCE_DIR/generated.env" ]; then
+            value="$(env_file_value "$INSTANCE_DIR/generated.env" "$key" || true)"
+        fi
+    fi
+
+    if [ -n "$value" ]; then
+        printf '%s\n' "$value"
+    else
+        printf '%s\n' "$default_value"
+    fi
+}
+
 random_hex() {
     local length="${1:-64}"
-    local old_pipefail
-    old_pipefail="$(set -o | awk '/pipefail/ {print $2}')"
-    set +o pipefail
-    tr -dc 'a-f0-9' </dev/urandom | head -c "$length"
-    [ "$old_pipefail" = "on" ] && set -o pipefail
+    local byte_count=$(( (length + 1) / 2 ))
+
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex "$byte_count" | cut -c1-"$length"
+        return 0
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$length" <<'PY'
+import secrets
+import sys
+length = int(sys.argv[1])
+print(secrets.token_hex((length + 1) // 2)[:length], end='')
+PY
+        return 0
+    fi
+
+    dd if=/dev/urandom bs=1 count="$byte_count" 2>/dev/null \
+        | od -An -tx1 -v \
+        | tr -d ' \n' \
+        | cut -c1-"$length"
+}
+
+port_is_free() {
+    local port="$1"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$port" <<'PY'
+import socket
+import sys
+port = int(sys.argv[1])
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(0.2)
+try:
+    raise SystemExit(0 if s.connect_ex(("127.0.0.1", port)) != 0 else 1)
+finally:
+    s.close()
+PY
+        return $?
+    fi
+
+    if command -v nc >/dev/null 2>&1; then
+        nc -z 127.0.0.1 "$port" >/dev/null 2>&1
+        return $?
+    fi
+
+    return 0
+}
+
+pick_postgres_host_port() {
+    case "$PROFILE" in
+        local)
+            if port_is_free 5432; then
+                printf '5432\n'
+            else
+                warn "Port 5432 ist bereits belegt; verwende 5433 fuer den lokalen Postgres."
+                printf '5433\n'
+            fi
+            ;;
+        *)
+            printf '\n'
+            ;;
+    esac
+}
+
+ensure_docker_volume() {
+    local volume_name="$1"
+    if ! docker volume inspect "$volume_name" >/dev/null 2>&1; then
+        info "Erzeuge Docker-Volume: $volume_name"
+        docker volume create "$volume_name" >/dev/null
+    fi
 }
 
 normalize_base_url() {
@@ -48,9 +146,19 @@ normalize_base_url() {
             printf '%s\n' "$input"
             ;;
         *)
-            case "$PROFILE" in
-                local) printf 'http://%s\n' "$input" ;;
-                *) printf 'https://%s\n' "$input" ;;
+            case "$input" in
+                localhost|localhost:*|127.*|127.*:*|0.0.0.0|0.0.0.0:*|::1|::1:*)
+                    printf 'http://%s\n' "$input"
+                    ;;
+                *:*)
+                    printf 'http://%s\n' "$input"
+                    ;;
+                *)
+                    case "$PROFILE" in
+                        local) printf 'http://%s\n' "$input" ;;
+                        *) printf 'https://%s\n' "$input" ;;
+                    esac
+                    ;;
             esac
             ;;
     esac
@@ -96,6 +204,29 @@ prompt_value() {
     else
         printf -v "$var_name" '%s' "$default_value"
     fi
+}
+
+prompt_profile() {
+    if [ -n "$PROFILE" ]; then
+        return 0
+    fi
+
+    if [ -t 0 ]; then
+        while :; do
+            printf 'Profil [local|beta|production] [local]: '
+            read -r PROFILE || true
+            PROFILE="${PROFILE:-local}"
+            case "$PROFILE" in
+                local|beta|production)
+                    return 0
+                    ;;
+            esac
+            warn "Ungültiges Profil: $PROFILE"
+            PROFILE=""
+        done
+    fi
+
+    PROFILE="local"
 }
 
 is_repo_root() {
@@ -181,25 +312,26 @@ build_env_file() {
     local project_name="$4"
     local admin_user="$5"
     local admin_pass="$6"
+    local postgres_host_port="${7:-}"
 
     local infra_secret auth_secret members_secret agenda_secret analytics_secret attendance_secret sso_shared_secret internal_api_secret
     local postgres_infra_password postgres_auth_password postgres_members_password postgres_agenda_password postgres_analytics_password postgres_attendance_password
 
-    infra_secret="$(random_hex 64)"
-    auth_secret="$(random_hex 64)"
-    members_secret="$(random_hex 64)"
-    agenda_secret="$(random_hex 64)"
-    analytics_secret="$(random_hex 64)"
-    attendance_secret="$(random_hex 64)"
-    sso_shared_secret="$(random_hex 64)"
-    internal_api_secret="$(random_hex 64)"
+    infra_secret="$(resolve_env_value INFRA_SECRET_KEY "$(random_hex 64)")"
+    auth_secret="$(resolve_env_value AUTH_SECRET_KEY "$(random_hex 64)")"
+    members_secret="$(resolve_env_value MEMBERS_SECRET_KEY "$(random_hex 64)")"
+    agenda_secret="$(resolve_env_value AGENDA_SECRET_KEY "$(random_hex 64)")"
+    analytics_secret="$(resolve_env_value ANALYTICS_SECRET_KEY "$(random_hex 64)")"
+    attendance_secret="$(resolve_env_value ATTENDANCE_SECRET_KEY "$(random_hex 64)")"
+    sso_shared_secret="$(resolve_env_value SSO_SHARED_SECRET "$(random_hex 64)")"
+    internal_api_secret="$(resolve_env_value INTERNAL_API_SECRET "$(random_hex 64)")"
 
-    postgres_infra_password="$(random_hex 32)"
-    postgres_auth_password="$(random_hex 32)"
-    postgres_members_password="$(random_hex 32)"
-    postgres_agenda_password="$(random_hex 32)"
-    postgres_analytics_password="$(random_hex 32)"
-    postgres_attendance_password="$(random_hex 32)"
+    postgres_infra_password="$(resolve_env_value POSTGRES_INFRA_PASSWORD "$(random_hex 32)")"
+    postgres_auth_password="$(resolve_env_value POSTGRES_AUTH_PASSWORD "$(random_hex 32)")"
+    postgres_members_password="$(resolve_env_value POSTGRES_MEMBERS_PASSWORD "$(random_hex 32)")"
+    postgres_agenda_password="$(resolve_env_value POSTGRES_AGENDA_PASSWORD "$(random_hex 32)")"
+    postgres_analytics_password="$(resolve_env_value POSTGRES_ANALYTICS_PASSWORD "$(random_hex 32)")"
+    postgres_attendance_password="$(resolve_env_value POSTGRES_ATTENDANCE_PASSWORD "$(random_hex 32)")"
 
     local base_host
     base_host="${public_base_url#http://}"
@@ -269,6 +401,7 @@ POSTGRES_MEMBERS_PASSWORD=${postgres_members_password}
 POSTGRES_AGENDA_PASSWORD=${postgres_agenda_password}
 POSTGRES_ANALYTICS_PASSWORD=${postgres_analytics_password}
 POSTGRES_ATTENDANCE_PASSWORD=${postgres_attendance_password}
+POSTGRES_HOST_PORT=${postgres_host_port}
 EOF
 
     cp "$ENV_FILE" "$INSTANCE_DIR/generated.env"
@@ -334,7 +467,7 @@ if [ ! -f "$REPO_ROOT/VERSION" ]; then
 fi
 VERSION="$(tr -d '\n' < "$REPO_ROOT/VERSION")"
 
-PROFILE="${PROFILE:-beta}"
+prompt_profile
 
 case "$PROFILE" in
     local)
@@ -369,6 +502,8 @@ if [ -z "$ADMIN_PASSWORD" ]; then
     info "Admin Password generiert: $ADMIN_PASSWORD"
 fi
 
+POSTGRES_HOST_PORT="$(pick_postgres_host_port)"
+
 mkdir -p "$INSTANCE_DIR"
 
 trap cleanup_on_error ERR
@@ -377,7 +512,13 @@ require_cmd docker
 docker info >/dev/null 2>&1 || die "Docker-Daemon laeuft nicht oder ist nicht erreichbar."
 docker compose version >/dev/null 2>&1 || die "Docker Compose ist nicht verfuegbar."
 
-build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD"
+case "$PROFILE" in
+    local)
+        ensure_docker_volume "tt-members_tt-members-data"
+        ;;
+esac
+
+build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
 
 COMPOSE_ARGS=()
 while IFS= read -r arg; do

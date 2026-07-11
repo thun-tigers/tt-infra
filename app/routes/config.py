@@ -25,7 +25,7 @@ from platform_config import (
 )
 
 from .admin import admin_required
-from .extensions import db
+from ..extensions import db
 
 bp = Blueprint('config', __name__, url_prefix='/config')
 

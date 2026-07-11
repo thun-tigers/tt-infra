@@ -12,7 +12,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
-from .extensions import db
+from ..extensions import db
 
 bp = Blueprint('backup', __name__)
 
