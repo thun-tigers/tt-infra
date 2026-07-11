@@ -1,15 +1,9 @@
 services:
   tt-infra:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     ports:
       - "${INFRA_PORT:-8084}:5000"
 
   tt-auth:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -18,9 +12,6 @@ services:
       - "${AUTH_PORT:-8085}:5000"
 
   tt-members:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -29,9 +20,6 @@ services:
       - "${MEMBERS_PORT:-8088}:5000"
 
   tt-agenda:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -40,9 +28,6 @@ services:
       - "${AGENDA_PORT:-8086}:5000"
 
   tt-analytics:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -51,9 +36,6 @@ services:
       - "${ANALYTICS_PORT:-8087}:5000"
 
   tt-attendance:
-    build:
-      args:
-        TT_COMMON_REF: v0.1.17
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:

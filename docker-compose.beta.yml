@@ -1,0 +1,313 @@
+x-common-env: &common-env
+  INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET muss gesetzt sein}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:?SSO_SHARED_SECRET muss gesetzt sein}
+  TZ: ${TZ:-Europe/Zurich}
+
+x-healthcheck-http: &healthcheck-http
+  interval: 30s
+  timeout: 5s
+  retries: 3
+
+x-healthcheck-postgres: &healthcheck-postgres
+  interval: 10s
+  timeout: 5s
+  retries: 10
+
+x-healthcheck-redis: &healthcheck-redis
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
+services:
+  tt-infra:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-infra:${TT_INFRA_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${INFRA_SECRET_KEY:?INFRA_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL}
+      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
+      MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL}
+      AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL}
+      ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL}
+      ATTENDANCE_DATABASE_URL: ${ATTENDANCE_DATABASE_URL}
+      MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/backup-sources/tt-members-instance}
+      ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/backup-sources/tt-analytics-uploads}
+      AUTO_CREATE_DB: "true"
+    volumes:
+      - tt-infra-data:/app/instance
+      - tt-members-data:/backup-sources/tt-members-instance
+      - analytics-uploads-data:/backup-sources/tt-analytics-uploads
+    depends_on:
+      tt-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/api/health').status == 200 else 1)\""]
+      start_period: 15s
+
+  tt-auth:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-auth:${TT_AUTH_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-8}
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-.thun-tigers.net}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-true}
+      AUTO_CREATE_DB: "true"
+      CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-false}
+      CREATE_DEFAULT_SERVICES: "true"
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD muss gesetzt sein}
+      DEFAULT_MEMBERS_URL: https://beta.thun-tigers.net/members
+      DEFAULT_AGENDA_URL: https://beta.thun-tigers.net/agenda
+      DEFAULT_ANALYTICS_URL: https://beta.thun-tigers.net/analytics
+      DEFAULT_INFRA_URL: https://beta.thun-tigers.net/infra
+      DEFAULT_ATTENDANCE_URL: https://beta.thun-tigers.net/attendance
+      DEFAULT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      DEFAULT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
+      DEFAULT_ANALYTICS_INTERNAL_URL: http://tt-analytics:5000
+      DEFAULT_ATTENDANCE_INTERNAL_URL: http://tt-attendance:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_TOKEN_EXPIRY_SECONDS: ${SSO_TOKEN_EXPIRY_SECONDS:-60}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/0
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      start_period: 20s
+
+  tt-members:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-members:${TT_MEMBERS_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${MEMBERS_SECRET_KEY:?MEMBERS_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL}
+      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_EXPECTED_AUDIENCE: tt-members
+      RATELIMIT_STORAGE_URI: memory://
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
+    volumes:
+      - tt-members-data:/app/instance
+    depends_on:
+      tt-auth:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+      tt-postgres:
+        condition: service_healthy
+      tt-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      start_period: 20s
+
+  tt-agenda:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-agenda:${TT_AGENDA_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${AGENDA_SECRET_KEY:?AGENDA_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
+      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      SSO_EXPECTED_AUDIENCE: tt-agenda
+      SSO_AUTO_PROVISION_USERS: ${AGENDA_SSO_AUTO_PROVISION_USERS:-true}
+      SSO_SYNC_ROLE: ${AGENDA_SSO_SYNC_ROLE:-true}
+      WEBHOOK_ENABLED: ${AGENDA_WEBHOOK_ENABLED:-false}
+      WEBHOOK_URL: ${AGENDA_WEBHOOK_URL:-}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/1
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres:
+        condition: service_healthy
+      tt-infra:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      start_period: 20s
+
+  tt-analytics:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-analytics:${TT_ANALYTICS_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${ANALYTICS_SECRET_KEY:?ANALYTICS_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
+      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      SSO_EXPECTED_AUDIENCE: tt-analytics
+      SSO_AUTO_PROVISION_USERS: ${ANALYTICS_SSO_AUTO_PROVISION_USERS:-true}
+      SSO_SYNC_ROLE: ${ANALYTICS_SSO_SYNC_ROLE:-true}
+      AUTO_CREATE_DB: "true"
+      UPLOAD_ROOT: /app/instance/uploads
+      MAX_CONTENT_LENGTH: ${ANALYTICS_MAX_CONTENT_LENGTH:-2147483648}
+      GEMINI_API_KEY: ${ANALYTICS_GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${ANALYTICS_GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_FILE_POLL_SECONDS: ${ANALYTICS_GEMINI_FILE_POLL_SECONDS:-5}
+      GEMINI_FILE_POLL_TIMEOUT_SECONDS: ${ANALYTICS_GEMINI_FILE_POLL_TIMEOUT_SECONDS:-300}
+      GEMINI_MAX_RETRIES: ${ANALYTICS_GEMINI_MAX_RETRIES:-8}
+      GEMINI_RETRY_BUFFER_SECONDS: ${ANALYTICS_GEMINI_RETRY_BUFFER_SECONDS:-5}
+      GEMINI_RETRY_DEFAULT_SECONDS: ${ANALYTICS_GEMINI_RETRY_DEFAULT_SECONDS:-60}
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/2
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+    volumes:
+      - analytics-uploads-data:/app/instance/uploads
+    depends_on:
+      tt-redis:
+        condition: service_healthy
+      tt-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      start_period: 30s
+
+  tt-attendance:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-attendance:${TT_ATTENDANCE_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      <<: *common-env
+      SECRET_KEY: ${ATTENDANCE_SECRET_KEY:?ATTENDANCE_SECRET_KEY muss gesetzt sein}
+      SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL}
+      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+      SSO_EXPECTED_AUDIENCE: tt-attendance
+      RATELIMIT_STORAGE_URI: memory://
+      SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
+    depends_on:
+      tt-auth:
+        condition: service_healthy
+      tt-agenda:
+        condition: service_healthy
+      tt-postgres:
+        condition: service_healthy
+      tt-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    healthcheck:
+      <<: *healthcheck-http
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
+      start_period: 20s
+
+  tt-postgres:
+    image: ${GHCR_REGISTRY:-ghcr.io}/${GHCR_OWNER:-thun-tigers}/tt-postgres:${TT_POSTGRES_IMAGE_TAG:-beta}
+    pull_policy: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra_beta}
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
+      POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}
+      POSTGRES_AUTH_USER: ${POSTGRES_AUTH_USER:-tt_auth}
+      POSTGRES_AUTH_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}
+      POSTGRES_AUTH_DB: ${POSTGRES_AUTH_DB:-tt_auth_beta}
+      POSTGRES_MEMBERS_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
+      POSTGRES_MEMBERS_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}
+      POSTGRES_MEMBERS_DB: ${POSTGRES_MEMBERS_DB:-tt_members_beta}
+      POSTGRES_AGENDA_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
+      POSTGRES_AGENDA_PASSWORD: ${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}
+      POSTGRES_AGENDA_DB: ${POSTGRES_AGENDA_DB:-tt_agenda_beta}
+      POSTGRES_ATTENDANCE_USER: ${POSTGRES_ATTENDANCE_USER:-tt_attendance}
+      POSTGRES_ATTENDANCE_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}
+      POSTGRES_ATTENDANCE_DB: ${POSTGRES_ATTENDANCE_DB:-tt_attendance_beta}
+      POSTGRES_ANALYTICS_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
+      POSTGRES_ANALYTICS_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}
+      POSTGRES_ANALYTICS_DB: ${POSTGRES_ANALYTICS_DB:-tt_analytics_beta}
+      TZ: ${TZ:-Europe/Zurich}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      <<: *healthcheck-postgres
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INFRA_USER:-tt_infra} -d ${POSTGRES_INFRA_DB:-tt_infra_beta}"]
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      <<: *healthcheck-redis
+      test: ["CMD", "redis-cli", "ping"]
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+
+  tt-proxy:
+    image: caddy:2-alpine
+    volumes:
+      - ./Caddyfile.beta:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - tigers-internal
+    depends_on:
+      tt-auth:
+        condition: service_healthy
+      tt-members:
+        condition: service_healthy
+
+networks:
+  tigers-internal:
+    name: tigers-beta-internal
+    external: true
+
+volumes:
+  tt-infra-data:
+    name: tigers-beta-tt-infra-data
+  tt-members-data:
+    name: tigers-beta-tt-members-data
+  postgres-data:
+    name: tigers-beta-postgres-data
+  analytics-uploads-data:
+    name: tigers-beta-analytics-uploads-data
+  redis-data:
+    name: tigers-beta-redis-data
+  caddy-data:
+    name: tigers-beta-caddy-data
+  caddy-config:
+    name: tigers-beta-caddy-config

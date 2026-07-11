@@ -1,7 +1,7 @@
 services:
   tt-infra:
     build: .
-    image: ghcr.io/swisi/tt-infra:latest
+    image: ghcr.io/thun-tigers/tt-infra:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -41,7 +41,9 @@ services:
   tt-auth:
     build:
       context: ../tt-auth
-    image: ghcr.io/swisi/tt-auth:latest
+      args:
+        TT_COMMON_TAG: beta
+    image: ghcr.io/thun-tigers/tt-auth:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -90,7 +92,9 @@ services:
   tt-members:
     build:
       context: ../tt-members
-    image: ghcr.io/swisi/tt-members:latest
+      args:
+        TT_COMMON_TAG: beta
+    image: ghcr.io/thun-tigers/tt-members:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -131,7 +135,9 @@ services:
   tt-agenda:
     build:
       context: ../tt-agenda
-    image: ghcr.io/swisi/tt-agenda:latest
+      args:
+        TT_COMMON_TAG: beta
+    image: ghcr.io/thun-tigers/tt-agenda:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -158,7 +164,7 @@ services:
       tt-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -170,7 +176,9 @@ services:
   tt-analytics:
     build:
       context: ../tt-analytics
-    image: ghcr.io/swisi/tt-analytics:latest
+      args:
+        TT_COMMON_TAG: beta
+    image: ghcr.io/thun-tigers/tt-analytics:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -206,7 +214,7 @@ services:
       tt-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -218,7 +226,9 @@ services:
   tt-attendance:
     build:
       context: ../tt-attendance
-    image: ghcr.io/swisi/tt-attendance:latest
+      args:
+        TT_COMMON_TAG: beta
+    image: ghcr.io/thun-tigers/tt-attendance:latest
     env_file:
       - path: ./instance/generated.env
         required: false
@@ -247,7 +257,7 @@ services:
       tt-redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').status == 200 else 1)\""]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -274,12 +284,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.postgres
-    image: ghcr.io/swisi/tt-postgres:latest
+    image: ghcr.io/thun-tigers/tt-postgres:latest
     environment:
       POSTGRES_DB: ${POSTGRES_INFRA_DB:-tt_infra}
       POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
       POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:-tt_infra_password}
-      # Weitergabe an Init-Script für die anderen Datenbanken
       POSTGRES_AUTH_USER: ${POSTGRES_AUTH_USER:-tt_auth}
       POSTGRES_AUTH_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-tt_auth_password}
       POSTGRES_AUTH_DB: ${POSTGRES_AUTH_DB:-tt_auth}
@@ -307,7 +316,6 @@ services:
     networks:
       - tigers-internal
 
-  # Einziger Entry Point lokal: http://localhost:8080 (analog Beta)
   tt-proxy:
     image: caddy:2-alpine
     ports:
