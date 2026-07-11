@@ -33,7 +33,11 @@ require_cmd() {
 
 random_hex() {
     local length="${1:-64}"
+    local old_pipefail
+    old_pipefail="$(set -o | awk '/pipefail/ {print $2}')"
+    set +o pipefail
     tr -dc 'a-f0-9' </dev/urandom | head -c "$length"
+    [ "$old_pipefail" = "on" ] && set -o pipefail
 }
 
 normalize_base_url() {
