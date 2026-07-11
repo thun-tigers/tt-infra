@@ -16,7 +16,10 @@ def _ensure_repo_root() -> None:
 
 _ensure_repo_root()
 
-from config_store import load_profile_store_from_db  # noqa: E402
+try:  # noqa: E402
+    from config_store import load_profile_store_from_db
+except ModuleNotFoundError:  # pragma: no cover - fallback for minimal VPS bootstrap
+    load_profile_store_from_db = None
 from platform_config import (  # noqa: E402
     PROFILE_NAMES,
     load_profile_store as load_profile_store_file,
@@ -108,6 +111,9 @@ def main(argv: list[str] | None = None) -> int:
         store_path = args.store or (repo_root / 'instance' / 'platform-config.json')
         output_path = args.output or (repo_root / 'instance' / 'generated.env')
         if args.db_url:
+            if load_profile_store_from_db is None:
+                print('FAIL: SQLAlchemy ist fuer --db-url nicht verfuegbar.', file=sys.stderr)
+                return 1
             from sqlalchemy import create_engine
 
             engine = create_engine(args.db_url)
