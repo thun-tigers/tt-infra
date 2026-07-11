@@ -40,12 +40,12 @@ jobs:
               exit 1
             fi
 
-            value="$(grep -E '^TIGERS_VERSION=' "${manifest}" | tail -n 1 | cut -d= -f2-)"
+            value="$(grep -E '^TIGERS_VERSION=' "${manifest}" | tail -n 1 | cut -d= -f2- || true)"
             if [[ -n "${value}" ]]; then
               [[ "${value}" == "v${release_name}" ]] || { echo "${manifest}: TIGERS_VERSION must be v${release_name}" >&2; exit 1; }
             else
               for key in TT_INFRA_IMAGE_TAG TT_AUTH_IMAGE_TAG TT_MEMBERS_IMAGE_TAG TT_AGENDA_IMAGE_TAG TT_ANALYTICS_IMAGE_TAG TT_ATTENDANCE_IMAGE_TAG; do
-                legacy="$(grep -E "^${key}=" "${manifest}" | tail -n 1 | cut -d= -f2-)"
+                legacy="$(grep -E "^${key}=" "${manifest}" | tail -n 1 | cut -d= -f2- || true)"
                 [[ "${legacy}" == "v${release_name}" ]] || { echo "${manifest}: ${key} must be v${release_name}" >&2; exit 1; }
               done
             fi
