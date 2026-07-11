@@ -27,7 +27,7 @@ services:
       <<: *common-env
       SECRET_KEY: ${INFRA_SECRET_KEY:?INFRA_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${INFRA_DATABASE_URL}
-      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
       MEMBERS_DATABASE_URL: ${MEMBERS_DATABASE_URL}
@@ -60,18 +60,18 @@ services:
       SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-8}
-      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-.thun-tigers.net}
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-}
       JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-true}
       AUTO_CREATE_DB: "true"
-      CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-false}
+      CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-true}
       CREATE_DEFAULT_SERVICES: "true"
       DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD muss gesetzt sein}
-      DEFAULT_MEMBERS_URL: https://beta.thun-tigers.net/members
-      DEFAULT_AGENDA_URL: https://beta.thun-tigers.net/agenda
-      DEFAULT_ANALYTICS_URL: https://beta.thun-tigers.net/analytics
-      DEFAULT_INFRA_URL: https://beta.thun-tigers.net/infra
-      DEFAULT_ATTENDANCE_URL: https://beta.thun-tigers.net/attendance
+      DEFAULT_MEMBERS_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/members
+      DEFAULT_AGENDA_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/agenda
+      DEFAULT_ANALYTICS_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/analytics
+      DEFAULT_INFRA_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/infra
+      DEFAULT_ATTENDANCE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/attendance
       DEFAULT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       DEFAULT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       DEFAULT_ANALYTICS_INTERNAL_URL: http://tt-analytics:5000
@@ -101,7 +101,7 @@ services:
       <<: *common-env
       SECRET_KEY: ${MEMBERS_SECRET_KEY:?MEMBERS_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${MEMBERS_DATABASE_URL}
-      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_EXPECTED_AUDIENCE: tt-members
@@ -133,7 +133,7 @@ services:
       <<: *common-env
       SECRET_KEY: ${AGENDA_SECRET_KEY:?AGENDA_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${AGENDA_DATABASE_URL}
-      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       SSO_EXPECTED_AUDIENCE: tt-agenda
@@ -165,7 +165,7 @@ services:
       <<: *common-env
       SECRET_KEY: ${ANALYTICS_SECRET_KEY:?ANALYTICS_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
-      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       SSO_EXPECTED_AUDIENCE: tt-analytics
       SSO_AUTO_PROVISION_USERS: ${ANALYTICS_SSO_AUTO_PROVISION_USERS:-true}
       SSO_SYNC_ROLE: ${ANALYTICS_SSO_SYNC_ROLE:-true}
@@ -205,7 +205,7 @@ services:
       <<: *common-env
       SECRET_KEY: ${ATTENDANCE_SECRET_KEY:?ATTENDANCE_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${ATTENDANCE_DATABASE_URL}
-      AUTH_BASE_URL: https://beta.thun-tigers.net/auth
+      AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000

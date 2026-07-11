@@ -49,7 +49,7 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 ## Schnellstart (lokal)
 
 1. Repositories tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance lokal neben dieses Repo legen.
-2. Stack mit einem Befehl starten — `setup.sh` initialisiert den lokalen Store, erzeugt `generated.env`, startet zuerst Postgres und danach den restlichen Stack:
+2. Stack mit einem Befehl starten — `setup.sh` fragt die Basisdaten ab, schreibt `.env`, startet zuerst Postgres und danach den restlichen Stack:
 
 ```bash
 ./setup.sh
@@ -82,8 +82,10 @@ Auf einem leeren Server werden keine Fachservice-Repositories benoetigt. Das Boo
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
 chmod +x setup.sh
-TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
+./setup.sh beta
 ```
+
+Wenn du einen fixen Plattform-Stand willst, setze vor dem Start `TT_INFRA_ARCHIVE_URL` auf das gewuenschte Release-Archiv.
 
 ## Deployment-Modi
 
@@ -104,10 +106,10 @@ TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v
 ### Lokal auf dem Entwickler-Laptop
 
 ```bash
-./setup.sh                         # Erststart: Store + env initialisieren, Postgres + Stack starten
+./setup.sh                         # Erststart: .env erzeugen, Postgres + Stack starten
 ./scripts/deploy.sh                # Neustart ohne Rebuild
 ./scripts/deploy.sh --build        # Neustart mit Rebuild
-./scripts/generate-env.sh local    # Nur generated.env aktualisieren
+./scripts/generate-env.sh local    # Nur instance/generated.env aktualisieren
 ```
 
 Config-UI (DB-basierte Secrets, URLs, Profil-Werte): `http://localhost:8080/infra/config`
@@ -149,12 +151,12 @@ Alle fachlichen Services verwenden denselben Einstieg:
 - `tt-auth` startet den SSO-Flow
 - der Service nimmt das Token unter `/auth/sso` an und springt danach auf `/`
 
-Start auf Server (mit vorhandener `instance/generated.env`, siehe [`docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`](docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md)):
+Start auf Server (mit generierter `.env`, siehe [`docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`](docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md)):
 
 ```bash
 ./scripts/generate-env.sh beta
 docker compose \
-	--env-file ./instance/generated.env \
+	--env-file ./.env \
 	-f docker-compose.arcane.beta.yml \
 	up -d --build
 ```

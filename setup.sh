@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Bootstrap fuer tt-infra.
+# Interaktiver Bootstrap fuer tt-infra.
 #
 # Ziel:
 # - im aktuellen Verzeichnis arbeiten
 # - kein git clone benoetigen
-# - auf einem leeren VPS optional ein Archiv direkt in das Zielverzeichnis
-#   entpacken
+# - bei leerem Verzeichnis das tt-infra-Archiv direkt dort entpacken
+# - eine minimale .env erzeugen und den Stack starten
 #
 # Profile:
 # - local
@@ -19,8 +19,8 @@ PROFILE="${TT_INFRA_PROFILE:-}"
 ARCHIVE_REF="${TT_INFRA_ARCHIVE_REF:-main}"
 ARCHIVE_URL="${TT_INFRA_ARCHIVE_URL:-https://github.com/thun-tigers/tt-infra/archive/refs/heads/${ARCHIVE_REF}.tar.gz}"
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
-DEFAULT_ADMIN_USERNAME="${DEFAULT_ADMIN_USERNAME:-admin}"
-DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
+ADMIN_USERNAME="${DEFAULT_ADMIN_USERNAME:-admin}"
+ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
 
 log() { printf '%s\n' "$*"; }
 info() { printf '→ %s\n' "$*"; }
@@ -31,8 +31,71 @@ require_cmd() {
     command -v "$1" >/dev/null 2>&1 || die "Fehlendes Kommando: $1"
 }
 
+random_hex() {
+    local length="${1:-64}"
+    tr -dc 'a-f0-9' </dev/urandom | head -c "$length"
+}
+
+normalize_base_url() {
+    local input="${1:-}"
+    input="${input%/}"
+    case "$input" in
+        http://*|https://*)
+            printf '%s\n' "$input"
+            ;;
+        *)
+            case "$PROFILE" in
+                local) printf 'http://%s\n' "$input" ;;
+                *) printf 'https://%s\n' "$input" ;;
+            esac
+            ;;
+    esac
+}
+
+derive_cookie_domain() {
+    local base_url="$1"
+    local host
+    host="${base_url#http://}"
+    host="${host#https://}"
+    host="${host%%/*}"
+    host="${host%%:*}"
+    case "$host" in
+        localhost|127.*|0.0.0.0|::1)
+            printf '\n'
+            ;;
+        *)
+            printf '.%s\n' "$host"
+            ;;
+    esac
+}
+
+prompt_value() {
+    local var_name="$1"
+    local label="$2"
+    local default_value="$3"
+    local secret="${4:-0}"
+    local input_value=""
+
+    if [ -t 0 ]; then
+        if [ "$secret" = "1" ]; then
+            printf '%s [%s]: ' "$label" "$default_value"
+            read -r -s input_value || true
+            printf '\n'
+        else
+            printf '%s [%s]: ' "$label" "$default_value"
+            read -r input_value || true
+        fi
+    fi
+
+    if [ -n "$input_value" ]; then
+        printf -v "$var_name" '%s' "$input_value"
+    else
+        printf -v "$var_name" '%s' "$default_value"
+    fi
+}
+
 is_repo_root() {
-    [ -f "$1/platform_config.py" ] && [ -f "$1/docker-compose.yml" ] && [ -f "$1/scripts/generate-env.sh" ]
+    [ -f "$1/platform_config.py" ] && [ -f "$1/docker-compose.yml" ] && [ -f "$1/docker-compose.beta.yml" ]
 }
 
 ensure_source_tree() {
@@ -41,9 +104,8 @@ ensure_source_tree() {
     fi
 
     mkdir -p "$WORKDIR"
-
-    if [ -n "$(find "$WORKDIR" -mindepth 1 -maxdepth 1 ! -name 'setup.sh' -print -quit 2>/dev/null || true)" ]; then
-        die "Aktuelles Verzeichnis ist nicht leer und enthaelt noch keinen tt-infra-Checkout: $WORKDIR"
+    if [ -n "$(find "$WORKDIR" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null || true)" ]; then
+        warn "Extrahiere tt-infra in bestehendes Verzeichnis: $WORKDIR"
     fi
 
     info "Lade tt-infra-Archiv in $WORKDIR ..."
@@ -63,19 +125,13 @@ ensure_source_tree() {
     die "Weder curl+tar noch Docker sind verfuegbar, um das Archiv zu laden."
 }
 
-cleanup_on_error() {
-    local exit_code=$?
-    printf '\n' >&2
-    warn "Setup fehlgeschlagen (Exit-Code ${exit_code})."
-    if command -v docker >/dev/null 2>&1 && [ -f "$ENV_FILE" ]; then
-        if docker compose version >/dev/null 2>&1; then
-            warn "Aktueller Stack-Status:"
-            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps) >&2 || true
-            warn "Letzte Postgres-Logs:"
-            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" logs --no-color --tail=80 tt-postgres) >&2 || true
-        fi
-    fi
-    exit "$exit_code"
+compose_files() {
+    case "$PROFILE" in
+        local) printf '%s\n' "-f" "docker-compose.yml" "-f" "docker-compose.local.yml" ;;
+        beta) printf '%s\n' "-f" "docker-compose.beta.yml" ;;
+        production) printf '%s\n' "-f" "docker-compose.prod.yml" ;;
+        *) die "Unbekanntes Profil: $PROFILE" ;;
+    esac
 }
 
 wait_for_postgres() {
@@ -85,7 +141,7 @@ wait_for_postgres() {
     info "Warte auf Postgres-Readiness ..."
     while [ "$SECONDS" -lt "$deadline" ]; do
         local container_id status
-        container_id="$(cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" ps -q tt-postgres 2>/dev/null || true)"
+        container_id="$(cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" ps -q tt-postgres 2>/dev/null || true)"
         if [ -n "$container_id" ]; then
             status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
             if [ "$status" = "healthy" ]; then
@@ -99,96 +155,125 @@ wait_for_postgres() {
     die "Postgres wurde innerhalb von ${timeout_seconds}s nicht healthy."
 }
 
-seed_profile_store() {
-    local profile="$1"
+cleanup_on_error() {
+    local exit_code=$?
+    printf '\n' >&2
+    warn "Setup fehlgeschlagen (Exit-Code ${exit_code})."
+    if command -v docker >/dev/null 2>&1 && [ -f "$ENV_FILE" ]; then
+        if docker compose version >/dev/null 2>&1; then
+            warn "Aktueller Stack-Status:"
+            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" ps) >&2 || true
+            warn "Letzte Postgres-Logs:"
+            (cd "$WORKDIR" && docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" logs --no-color --tail=80 tt-postgres) >&2 || true
+        fi
+    fi
+    exit "$exit_code"
+}
+
+build_env_file() {
+    local version="$1"
     local public_base_url="$2"
-    local admin_username="$3"
-    local admin_password="$4"
-    local version="$5"
+    local cookie_domain="$3"
+    local project_name="$4"
+    local admin_user="$5"
+    local admin_pass="$6"
 
-    python3 - "$STORE_PATH" "$profile" "$public_base_url" "$admin_username" "$admin_password" "$version" <<'PY'
-from __future__ import annotations
+    local infra_secret auth_secret members_secret agenda_secret analytics_secret attendance_secret sso_shared_secret internal_api_secret
+    local postgres_infra_password postgres_auth_password postgres_members_password postgres_agenda_password postgres_analytics_password postgres_attendance_password
 
-import secrets
-import sys
-from pathlib import Path
+    infra_secret="$(random_hex 64)"
+    auth_secret="$(random_hex 64)"
+    members_secret="$(random_hex 64)"
+    agenda_secret="$(random_hex 64)"
+    analytics_secret="$(random_hex 64)"
+    attendance_secret="$(random_hex 64)"
+    sso_shared_secret="$(random_hex 64)"
+    internal_api_secret="$(random_hex 64)"
 
-repo_store = Path(sys.argv[1])
-profile = sys.argv[2]
-public_base_url = sys.argv[3].strip()
-admin_username = sys.argv[4].strip() or 'admin'
-admin_password = sys.argv[5].strip()
-version = sys.argv[6].strip()
+    postgres_infra_password="$(random_hex 32)"
+    postgres_auth_password="$(random_hex 32)"
+    postgres_members_password="$(random_hex 32)"
+    postgres_agenda_password="$(random_hex 32)"
+    postgres_analytics_password="$(random_hex 32)"
+    postgres_attendance_password="$(random_hex 32)"
 
-repo_root = repo_store.parents[1]
-sys.path.insert(0, str(repo_root))
-from platform_config import load_profile_store, profile_sections, profile_values, save_profile_store  # noqa: E402
+    local base_host
+    base_host="${public_base_url#http://}"
+    base_host="${base_host#https://}"
+    base_host="${base_host%%/*}"
 
+    local default_users="false"
+    case "$PROFILE" in
+        local|beta) default_users="true" ;;
+    esac
 
-def is_sensitive(key: str) -> bool:
-    return any(marker in key for marker in ('SECRET', 'TOKEN', 'API_KEY')) or key.endswith('_PASSWORD')
+    local db_suffix=""
+    case "$PROFILE" in
+        beta) db_suffix="_beta" ;;
+    esac
 
+    cat > "$ENV_FILE" <<EOF
+COMPOSE_PROJECT_NAME=${project_name}
+TZ=Europe/Zurich
+LOG_LEVEL=INFO
+GHCR_REGISTRY=ghcr.io
+GHCR_OWNER=thun-tigers
+TT_HOST_BIND_IP=172.17.0.1
 
-def is_placeholder(value: str) -> bool:
-    value = value or ''
-    return not value or value.startswith('change-me') or value == 'admin'
+PUBLIC_BASE_URL=${public_base_url}
+AUTH_BASE_URL=${public_base_url}/auth
+DEFAULT_MEMBERS_URL=${public_base_url}/members
+DEFAULT_AGENDA_URL=${public_base_url}/agenda
+DEFAULT_ANALYTICS_URL=${public_base_url}/analytics
+DEFAULT_ATTENDANCE_URL=${public_base_url}/attendance
+DEFAULT_INFRA_URL=${public_base_url}/infra
+JWT_COOKIE_DOMAIN=${cookie_domain}
+JWT_COOKIE_SECURE=true
 
+TT_INFRA_IMAGE_TAG=v${version}
+TT_AUTH_IMAGE_TAG=v${version}
+TT_MEMBERS_IMAGE_TAG=v${version}
+TT_AGENDA_IMAGE_TAG=v${version}
+TT_ANALYTICS_IMAGE_TAG=v${version}
+TT_ATTENDANCE_IMAGE_TAG=v${version}
 
-def random_secret() -> str:
-    return secrets.token_hex(32)
+INFRA_SECRET_KEY=${infra_secret}
+AUTH_SECRET_KEY=${auth_secret}
+MEMBERS_SECRET_KEY=${members_secret}
+AGENDA_SECRET_KEY=${agenda_secret}
+ANALYTICS_SECRET_KEY=${analytics_secret}
+ATTENDANCE_SECRET_KEY=${attendance_secret}
+SSO_SHARED_SECRET=${sso_shared_secret}
+INTERNAL_API_SECRET=${internal_api_secret}
 
+DEFAULT_ADMIN_USERNAME=${admin_user}
+DEFAULT_ADMIN_PASSWORD=${admin_pass}
+CREATE_DEFAULT_USERS=${default_users}
+CREATE_DEFAULT_SERVICES=true
+SSO_TOKEN_EXPIRY_SECONDS=60
 
-def derive_db_url(prefix: str, values: dict[str, str]) -> str:
-    user = values.get(f'POSTGRES_{prefix}_USER') or ''
-    password = values.get(f'POSTGRES_{prefix}_PASSWORD') or ''
-    database = values.get(f'POSTGRES_{prefix}_DB') or ''
-    return f'postgresql+psycopg://{user}:{password}@tt-postgres:5432/{database}'
+INFRA_DATABASE_URL=postgresql+psycopg://tt_infra:${postgres_infra_password}@tt-postgres:5432/tt_infra${db_suffix}
+AUTH_DATABASE_URL=postgresql+psycopg://tt_auth:${postgres_auth_password}@tt-postgres:5432/tt_auth${db_suffix}
+MEMBERS_DATABASE_URL=postgresql+psycopg://tt_members:${postgres_members_password}@tt-postgres:5432/tt_members${db_suffix}
+AGENDA_DATABASE_URL=postgresql+psycopg://tt_agenda:${postgres_agenda_password}@tt-postgres:5432/tt_agenda${db_suffix}
+ANALYTICS_DATABASE_URL=postgresql+psycopg://tt_analytics:${postgres_analytics_password}@tt-postgres:5432/tt_analytics${db_suffix}
+ATTENDANCE_DATABASE_URL=postgresql+psycopg://tt_attendance:${postgres_attendance_password}@tt-postgres:5432/tt_attendance${db_suffix}
 
+POSTGRES_INFRA_PASSWORD=${postgres_infra_password}
+POSTGRES_AUTH_PASSWORD=${postgres_auth_password}
+POSTGRES_MEMBERS_PASSWORD=${postgres_members_password}
+POSTGRES_AGENDA_PASSWORD=${postgres_agenda_password}
+POSTGRES_ANALYTICS_PASSWORD=${postgres_analytics_password}
+POSTGRES_ATTENDANCE_PASSWORD=${postgres_attendance_password}
+EOF
 
-store = load_profile_store(repo_store, seed_defaults=True)
-defaults = profile_values(profile, version=version)
-values = dict(store.get(profile, {}))
-values.update(defaults)
+    cp "$ENV_FILE" "$INSTANCE_DIR/generated.env"
 
-if public_base_url:
-    values['PUBLIC_BASE_URL'] = public_base_url.rstrip('/')
-elif profile == 'local':
-    values['PUBLIC_BASE_URL'] = defaults.get('PUBLIC_BASE_URL', 'http://localhost:8080')
-
-values['DEFAULT_ADMIN_USERNAME'] = admin_username or values.get('DEFAULT_ADMIN_USERNAME', 'admin') or 'admin'
-if admin_password:
-    values['DEFAULT_ADMIN_PASSWORD'] = admin_password
-elif profile == 'local':
-    values['DEFAULT_ADMIN_PASSWORD'] = values.get('DEFAULT_ADMIN_PASSWORD') or 'admin'
-elif is_placeholder(values.get('DEFAULT_ADMIN_PASSWORD', '')):
-    values['DEFAULT_ADMIN_PASSWORD'] = random_secret()
-
-for section in profile_sections(profile, version=version):
-    for item in section.entries:
-        key = item.key
-        current = values.get(key, '')
-        if key in {'PUBLIC_BASE_URL', 'DEFAULT_ADMIN_USERNAME', 'DEFAULT_ADMIN_PASSWORD'}:
-            continue
-        if key.endswith('_DATABASE_URL'):
-            continue
-        if is_sensitive(key) and is_placeholder(current):
-            values[key] = random_secret()
-        elif item.required and current == '':
-            values[key] = values.get(key, item.value)
-
-for prefix in ('INFRA', 'AUTH', 'MEMBERS', 'AGENDA', 'ANALYTICS', 'ATTENDANCE'):
-    url_key = f'{prefix}_DATABASE_URL'
-    current = values.get(url_key, '')
-    if not current or 'change-me' in current or 'tt-postgres' not in current:
-        values[url_key] = derive_db_url(prefix, values)
-
-store[profile] = values
-save_profile_store(repo_store, store)
-
-print(f'PUBLIC_BASE_URL={values.get("PUBLIC_BASE_URL", "")}')
-print(f'DEFAULT_ADMIN_USERNAME={values.get("DEFAULT_ADMIN_USERNAME", "admin")}')
-print(f'DEFAULT_ADMIN_PASSWORD={values.get("DEFAULT_ADMIN_PASSWORD", "")}')
-PY
+    info "Env-Datei geschrieben: $ENV_FILE"
+    info "Cookie-Domain: ${cookie_domain:-<leer>}"
+    info "Projektname: $project_name"
+    info "Base URL: $public_base_url"
+    info "Postgres-Datenbank: tt-postgres"
 }
 
 parse_args() {
@@ -200,8 +285,8 @@ Verwendung:
   ./setup.sh [local|beta|production]
   ./setup.sh --profile <local|beta|production>
 
-Wenn das aktuelle Verzeichnis noch leer ist:
-  TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
+Das Skript fragt interaktiv nach Basis-URL und Admin-Daten und erzeugt
+eine .env im aktuellen Verzeichnis.
 EOF
                 exit 0
                 ;;
@@ -238,77 +323,66 @@ ensure_source_tree
 WORKDIR="$(cd "$WORKDIR" && pwd)"
 REPO_ROOT="$WORKDIR"
 INSTANCE_DIR="$REPO_ROOT/instance"
-STORE_PATH="$INSTANCE_DIR/platform-config.json"
-ENV_FILE="$INSTANCE_DIR/generated.env"
-
-case "$PROFILE" in
-    local)
-        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://localhost:8080}"
-        COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.local.yml)
-        ;;
-    beta)
-        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}"
-        COMPOSE_FILES=(-f docker-compose.beta.yml)
-        ;;
-    production)
-        PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://thun-tigers.net}"
-        COMPOSE_FILES=(-f docker-compose.prod.yml)
-        ;;
-    *)
-        die "Unbekanntes Profil: $PROFILE"
-        ;;
-esac
+ENV_FILE="$REPO_ROOT/.env"
 
 if [ ! -f "$REPO_ROOT/VERSION" ]; then
     die "VERSION-Datei fehlt im aktuellen Verzeichnis: $REPO_ROOT"
 fi
 VERSION="$(tr -d '\n' < "$REPO_ROOT/VERSION")"
 
+PROFILE="${PROFILE:-beta}"
+
+case "$PROFILE" in
+    local)
+        default_base_url="http://localhost:8080"
+        ;;
+    beta)
+        default_base_url="https://beta.thun-tigers.net"
+        ;;
+    production)
+        default_base_url="https://thun-tigers.net"
+        ;;
+    *)
+        die "Unbekanntes Profil: $PROFILE"
+        ;;
+esac
+
+prompt_value PUBLIC_BASE_URL "Public Base URL oder Hostname" "$default_base_url" 0
+PUBLIC_BASE_URL="$(normalize_base_url "$PUBLIC_BASE_URL")"
+
+cookie_domain_default="$(derive_cookie_domain "$PUBLIC_BASE_URL")"
+prompt_value COOKIE_DOMAIN_INPUT "JWT Cookie Domain" "$cookie_domain_default" 0
+JWT_COOKIE_DOMAIN="${COOKIE_DOMAIN_INPUT:-$cookie_domain_default}"
+
+default_project_name="$(basename "$WORKDIR" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
+[ -n "$default_project_name" ] || default_project_name="tigers"
+prompt_value COMPOSE_PROJECT_NAME "Compose Project Name" "$default_project_name" 0
+
+prompt_value ADMIN_USERNAME "Admin Username" "admin" 0
+prompt_value ADMIN_PASSWORD "Admin Password (leer = automatisch generiert)" "" 1
+if [ -z "$ADMIN_PASSWORD" ]; then
+    ADMIN_PASSWORD="$(random_hex 24)"
+    info "Admin Password generiert: $ADMIN_PASSWORD"
+fi
+
+mkdir -p "$INSTANCE_DIR"
+
 trap cleanup_on_error ERR
 
 require_cmd docker
-require_cmd python3
 docker info >/dev/null 2>&1 || die "Docker-Daemon laeuft nicht oder ist nicht erreichbar."
 docker compose version >/dev/null 2>&1 || die "Docker Compose ist nicht verfuegbar."
 
-cd "$REPO_ROOT"
-mkdir -p "$INSTANCE_DIR"
+build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD"
 
-if [ -t 0 ] && [ "$PROFILE" = "local" ]; then
-    printf 'Public Base URL [%s]: ' "$PUBLIC_BASE_URL"
-    read -r input_public_base_url || true
-    PUBLIC_BASE_URL="${input_public_base_url:-$PUBLIC_BASE_URL}"
-
-    printf 'Admin Username [%s]: ' "$DEFAULT_ADMIN_USERNAME"
-    read -r input_admin_username || true
-    DEFAULT_ADMIN_USERNAME="${input_admin_username:-$DEFAULT_ADMIN_USERNAME}"
-
-    printf 'Admin Password [generated if empty]: '
-    read -r -s input_admin_password || true
-    printf '\n'
-    DEFAULT_ADMIN_PASSWORD="${input_admin_password:-$DEFAULT_ADMIN_PASSWORD}"
-fi
-
-info "Initialisiere Konfigurationsstore fuer Profil '$PROFILE' ..."
-seed_output="$(seed_profile_store "$PROFILE" "$PUBLIC_BASE_URL" "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" "$VERSION")"
-
-GENERATED_ADMIN_USERNAME="$DEFAULT_ADMIN_USERNAME"
-GENERATED_ADMIN_PASSWORD="$DEFAULT_ADMIN_PASSWORD"
-while IFS='=' read -r key value; do
-    case "$key" in
-        PUBLIC_BASE_URL) PUBLIC_BASE_URL="$value" ;;
-        DEFAULT_ADMIN_USERNAME) GENERATED_ADMIN_USERNAME="$value" ;;
-        DEFAULT_ADMIN_PASSWORD) GENERATED_ADMIN_PASSWORD="$value" ;;
-    esac
-done <<EOF
-$seed_output
-EOF
-
-info "Erzeuge instance/generated.env ..."
-"$REPO_ROOT/scripts/generate-env.sh" --version "$VERSION" "$PROFILE" >/dev/null
+COMPOSE_ARGS=()
+while IFS= read -r arg; do
+    COMPOSE_ARGS+=("$arg")
+done < <(compose_files)
 
 info "Starte Stack ..."
-docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" up -d --build
+cd "$REPO_ROOT"
+docker compose --env-file "$ENV_FILE" "${COMPOSE_ARGS[@]}" up -d --build
 wait_for_postgres
 
 printf '\n'
@@ -320,24 +394,20 @@ case "$PROFILE" in
         log "  Config-UI   : http://localhost:8080/infra/config"
         ;;
     beta)
-        log "  Entry Point : https://beta.thun-tigers.net"
-        log "  Config-UI   : https://beta.thun-tigers.net/infra/config"
+        log "  Entry Point : ${PUBLIC_BASE_URL}"
+        log "  Config-UI   : ${PUBLIC_BASE_URL}/infra/config"
         ;;
     production)
-        log "  Entry Point : https://thun-tigers.net"
-        log "  Config-UI   : https://thun-tigers.net/infra/config"
+        log "  Entry Point : ${PUBLIC_BASE_URL}"
+        log "  Config-UI   : ${PUBLIC_BASE_URL}/infra/config"
         ;;
 esac
 printf '\n'
 log "Gespeicherte Konfiguration:"
 log "  Verzeichnis : $REPO_ROOT"
-log "  Store       : $STORE_PATH"
-log "  generated.env: $ENV_FILE"
+log "  .env        : $ENV_FILE"
+log "  instance    : $INSTANCE_DIR/generated.env"
 printf '\n'
 log "Initiale Login-Daten:"
-log "  Benutzer    : ${GENERATED_ADMIN_USERNAME:-$DEFAULT_ADMIN_USERNAME}"
-if [ -n "${GENERATED_ADMIN_PASSWORD:-}" ]; then
-    log "  Passwort    : $GENERATED_ADMIN_PASSWORD"
-else
-    log "  Passwort    : (nicht neu generiert)"
-fi
+log "  Benutzer    : $ADMIN_USERNAME"
+log "  Passwort    : $ADMIN_PASSWORD"

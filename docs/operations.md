@@ -68,12 +68,12 @@ Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
 ./setup.sh beta
 ```
 
-Blank-Server-Bootstrap:
+Blank-Server-Bootstrap im aktuellen Verzeichnis:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
 chmod +x setup.sh
-TT_INFRA_ARCHIVE_URL=https://github.com/thun-tigers/tt-infra/archive/refs/tags/v0.1.20.tar.gz ./setup.sh beta
+./setup.sh beta
 ```
 
 Oder manuell:
@@ -81,7 +81,7 @@ Oder manuell:
 ```bash
 ./scripts/generate-env.sh beta
 docker compose \
-  --env-file ./instance/generated.env \
+  --env-file ./.env \
   -f docker-compose.beta.yml \
   up -d --build
 ```
@@ -90,7 +90,7 @@ Status pruefen:
 
 ```bash
 docker compose \
-  --env-file ./instance/generated.env \
+  --env-file ./.env \
   -f docker-compose.beta.yml \
   ps
 ```
