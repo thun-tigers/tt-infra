@@ -1,5 +1,7 @@
 .env
 .env.local
+.env.beta
+.env.prod
 .DS_Store
 *.log
 __pycache__/
@@ -8,5 +10,6 @@ migration-archive/
 instance/
 secrets.local.json
 platform-config.json
+.env.arcane.beta
 .env.arcane.beta.v*
 .env.arcane.local.v*
