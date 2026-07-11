@@ -316,9 +316,11 @@ build_env_file() {
     local project_name="$4"
     local internal_network_name="$5"
     local internal_network_external="$6"
-    local admin_user="$7"
-    local admin_pass="$8"
-    local postgres_host_port="${9:-}"
+    local service_image_tag="$7"
+    local postgres_image_tag="$8"
+    local admin_user="$9"
+    local admin_pass="${10}"
+    local postgres_host_port="${11:-}"
 
     local infra_secret auth_secret members_secret agenda_secret analytics_secret attendance_secret sso_shared_secret internal_api_secret
     local postgres_infra_password postgres_auth_password postgres_members_password postgres_agenda_password postgres_analytics_password postgres_attendance_password
@@ -354,11 +356,6 @@ build_env_file() {
         beta) db_suffix="_beta" ;;
     esac
 
-    local tt_infra_image_tag="v${version}"
-    case "$PROFILE" in
-        beta) tt_infra_image_tag="beta" ;;
-    esac
-
     cat > "$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=${project_name}
 TZ=Europe/Zurich
@@ -377,12 +374,13 @@ DEFAULT_INFRA_URL=${public_base_url}/infra
 JWT_COOKIE_DOMAIN=${cookie_domain}
 JWT_COOKIE_SECURE=true
 
-TT_INFRA_IMAGE_TAG=${tt_infra_image_tag}
-TT_AUTH_IMAGE_TAG=v${version}
-TT_MEMBERS_IMAGE_TAG=v${version}
-TT_AGENDA_IMAGE_TAG=v${version}
-TT_ANALYTICS_IMAGE_TAG=v${version}
-TT_ATTENDANCE_IMAGE_TAG=v${version}
+TT_INFRA_IMAGE_TAG=${service_image_tag}
+TT_AUTH_IMAGE_TAG=${service_image_tag}
+TT_MEMBERS_IMAGE_TAG=${service_image_tag}
+TT_AGENDA_IMAGE_TAG=${service_image_tag}
+TT_ANALYTICS_IMAGE_TAG=${service_image_tag}
+TT_ATTENDANCE_IMAGE_TAG=${service_image_tag}
+TT_POSTGRES_IMAGE_TAG=${postgres_image_tag}
 
 INFRA_SECRET_KEY=${infra_secret}
 AUTH_SECRET_KEY=${auth_secret}
@@ -529,6 +527,17 @@ case "$PROFILE" in
 esac
 prompt_value INTERNAL_NETWORK_NAME "Docker Internal Network" "$default_internal_network_name" 0
 
+default_service_image_tag="v${VERSION}"
+default_postgres_image_tag="v${VERSION}"
+case "$PROFILE" in
+    beta)
+        default_service_image_tag="beta"
+        default_postgres_image_tag="beta"
+        ;;
+esac
+prompt_value SERVICE_IMAGE_TAG "Service Image Tag" "$default_service_image_tag" 0
+prompt_value POSTGRES_IMAGE_TAG "Postgres Image Tag" "$default_postgres_image_tag" 0
+
 prompt_value ADMIN_USERNAME "Admin Username" "admin" 0
 prompt_value ADMIN_PASSWORD "Admin Password (leer = automatisch generiert)" "" 1
 if [ -z "$ADMIN_PASSWORD" ]; then
@@ -570,7 +579,7 @@ case "$PROFILE" in
         ;;
 esac
 
-build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$INTERNAL_NETWORK_NAME" "$INTERNAL_NETWORK_EXTERNAL" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
+build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$INTERNAL_NETWORK_NAME" "$INTERNAL_NETWORK_EXTERNAL" "$SERVICE_IMAGE_TAG" "$POSTGRES_IMAGE_TAG" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
 
 COMPOSE_ARGS=()
 while IFS= read -r arg; do
