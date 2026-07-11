@@ -293,8 +293,8 @@ services:
 
 networks:
   tigers-internal:
-    name: tigers-beta-internal
-    external: true
+    name: ${TT_INTERNAL_NETWORK_NAME:-tigers-beta-internal}
+    driver: bridge
 
 volumes:
   tt-infra-data:

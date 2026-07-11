@@ -330,6 +330,7 @@ services:
 
 networks:
   tigers-internal:
+    name: ${TT_INTERNAL_NETWORK_NAME:-tigers-internal}
     driver: bridge
 
 volumes:

@@ -310,9 +310,10 @@ build_env_file() {
     local public_base_url="$2"
     local cookie_domain="$3"
     local project_name="$4"
-    local admin_user="$5"
-    local admin_pass="$6"
-    local postgres_host_port="${7:-}"
+    local internal_network_name="$5"
+    local admin_user="$6"
+    local admin_pass="$7"
+    local postgres_host_port="${8:-}"
 
     local infra_secret auth_secret members_secret agenda_secret analytics_secret attendance_secret sso_shared_secret internal_api_secret
     local postgres_infra_password postgres_auth_password postgres_members_password postgres_agenda_password postgres_analytics_password postgres_attendance_password
@@ -387,6 +388,7 @@ DEFAULT_ADMIN_PASSWORD=${admin_pass}
 CREATE_DEFAULT_USERS=${default_users}
 CREATE_DEFAULT_SERVICES=true
 SSO_TOKEN_EXPIRY_SECONDS=60
+TT_INTERNAL_NETWORK_NAME=${internal_network_name}
 
 INFRA_DATABASE_URL=postgresql+psycopg://tt_infra:${postgres_infra_password}@tt-postgres:5432/tt_infra${db_suffix}
 AUTH_DATABASE_URL=postgresql+psycopg://tt_auth:${postgres_auth_password}@tt-postgres:5432/tt_auth${db_suffix}
@@ -422,8 +424,8 @@ Verwendung:
   ./setup.sh [local|beta|production]
   ./setup.sh --profile <local|beta|production>
 
-Das Skript fragt interaktiv nach Basis-URL und Admin-Daten und erzeugt
-eine .env im aktuellen Verzeichnis.
+Das Skript fragt interaktiv nach Basis-URL, internem Docker-Netzwerk und
+Admin-Daten und erzeugt eine .env im aktuellen Verzeichnis.
 EOF
                 exit 0
                 ;;
@@ -495,6 +497,13 @@ default_project_name="$(basename "$WORKDIR" | tr '[:upper:]' '[:lower:]' | tr -c
 [ -n "$default_project_name" ] || default_project_name="tigers"
 prompt_value COMPOSE_PROJECT_NAME "Compose Project Name" "$default_project_name" 0
 
+default_internal_network_name="${default_project_name}-internal"
+case "$PROFILE" in
+    beta) default_internal_network_name="tigers-beta-internal" ;;
+    production) default_internal_network_name="tigers-prod-internal" ;;
+esac
+prompt_value INTERNAL_NETWORK_NAME "Docker Internal Network" "$default_internal_network_name" 0
+
 prompt_value ADMIN_USERNAME "Admin Username" "admin" 0
 prompt_value ADMIN_PASSWORD "Admin Password (leer = automatisch generiert)" "" 1
 if [ -z "$ADMIN_PASSWORD" ]; then
@@ -518,7 +527,7 @@ case "$PROFILE" in
         ;;
 esac
 
-build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
+build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$INTERNAL_NETWORK_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
 
 COMPOSE_ARGS=()
 while IFS= read -r arg; do
