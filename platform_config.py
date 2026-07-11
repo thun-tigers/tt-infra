@@ -47,8 +47,8 @@ NUMBER_HINTS = (
 )
 
 # Keys derived at render time from PUBLIC_BASE_URL.
-# They appear in generated.env for backwards compat but are NOT stored in
-# platform-config.json and are NOT editable in the Config-UI.
+# They appear in runtime.env for backwards compatibility and are derived
+# from PUBLIC_BASE_URL rather than configured individually.
 PUBLIC_DERIVED_KEYS: frozenset[str] = frozenset({
     'AUTH_BASE_URL',
     'DEFAULT_MEMBERS_URL',
@@ -56,6 +56,20 @@ PUBLIC_DERIVED_KEYS: frozenset[str] = frozenset({
     'DEFAULT_ANALYTICS_URL',
     'DEFAULT_INFRA_URL',
     'DEFAULT_ATTENDANCE_URL',
+})
+
+OPERATOR_KEYS: frozenset[str] = frozenset({
+    'DEPLOYMENT_NAME',
+    'PUBLIC_BASE_URL',
+    'TIGERS_VERSION',
+    'CADDY_CONFIG_DIR',
+    'CREATE_DEFAULT_USERS',
+    'DEFAULT_ADMIN_USERNAME',
+    'DEFAULT_ADMIN_PASSWORD',
+    'AGENDA_WEBHOOK_ENABLED',
+    'AGENDA_WEBHOOK_URL',
+    'ANALYTICS_GEMINI_API_KEY',
+    'ANALYTICS_GEMINI_MODEL',
 })
 
 
@@ -75,14 +89,7 @@ def infer_field_kind(key: str) -> str:
 
 def _image_tag_entries(version: str) -> tuple[EnvEntry, ...]:
     tag = f'v{version.lstrip("v")}'
-    return (
-        entry('TT_INFRA_IMAGE_TAG', tag),
-        entry('TT_AUTH_IMAGE_TAG', tag),
-        entry('TT_MEMBERS_IMAGE_TAG', tag),
-        entry('TT_AGENDA_IMAGE_TAG', tag),
-        entry('TT_ANALYTICS_IMAGE_TAG', tag),
-        entry('TT_ATTENDANCE_IMAGE_TAG', tag),
-    )
+    return (entry('TIGERS_VERSION', tag),)
 
 
 def _release_manifest_sections(version: str) -> tuple[EnvSection, ...]:
@@ -255,6 +262,10 @@ def local_env_sections(version: str | None = None, include_image_tags: bool = Fa
         section(
             'Core',
             entry('COMPOSE_PROJECT_NAME', 'tigers-local'),
+            entry('DEPLOYMENT_NAME', 'tigers-local'),
+            entry('CADDYFILE', 'Caddyfile.local'),
+            entry('PROXY_PORT', '8080'),
+            entry('DATABASE_SUFFIX', '', required=False),
             entry('TZ', 'Europe/Zurich'),
             entry('LOG_LEVEL', 'INFO'),
         ),
@@ -352,11 +363,12 @@ def beta_env_sections(version: str) -> tuple[EnvSection, ...]:
         section(
             'Core',
             entry('COMPOSE_PROJECT_NAME', 'tigers-beta'),
+            entry('DEPLOYMENT_NAME', 'tigers-beta'),
+            entry('CADDYFILE', 'Caddyfile.beta'),
+            entry('PROXY_PORT', '80'),
+            entry('DATABASE_SUFFIX', '_beta'),
             entry('TZ', 'Europe/Zurich'),
             entry('LOG_LEVEL', 'INFO'),
-            entry('GHCR_REGISTRY', 'ghcr.io'),
-            entry('GHCR_OWNER', 'thun-tigers'),
-            entry('TT_HOST_BIND_IP', '172.17.0.1'),
         ),
         section('Images', *_image_tag_entries(version)),
         _shared_secret_section(placeholders=False),
@@ -444,11 +456,12 @@ def production_env_sections(version: str) -> tuple[EnvSection, ...]:
         section(
             'Core',
             entry('COMPOSE_PROJECT_NAME', 'tigers-production'),
+            entry('DEPLOYMENT_NAME', 'tigers-prod'),
+            entry('CADDYFILE', 'Caddyfile.prod'),
+            entry('PROXY_PORT', '80'),
+            entry('DATABASE_SUFFIX', '', required=False),
             entry('TZ', 'Europe/Zurich'),
             entry('LOG_LEVEL', 'INFO'),
-            entry('GHCR_REGISTRY', 'ghcr.io'),
-            entry('GHCR_OWNER', 'thun-tigers'),
-            entry('TT_HOST_BIND_IP', '172.17.0.1'),
         ),
         section('Images', *_image_tag_entries(version)),
         _shared_secret_section(placeholders=True),

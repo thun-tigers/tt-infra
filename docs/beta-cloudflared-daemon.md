@@ -27,7 +27,7 @@ Caddy setzt `X-Forwarded-Prefix`; ProxyFix in den Flask-Apps liest den Header un
 
 Historisches Modell (nicht mehr aktiv): Separate Subdomains `auth-beta.thun-tigers.net`, `members-beta.thun-tigers.net` usw. mit direkter Weiterleitung auf die Service-Ports `608x`. Cloudflare-Konfiguration und Firewall-Regeln fuer diese Ports werden nicht mehr benoetigt.
 
-`tt-infra` braucht fuer SSO-Redirects `PUBLIC_BASE_URL=https://beta.thun-tigers.net`; daraus werden `AUTH_BASE_URL=https://beta.thun-tigers.net/auth` und die uebrigen `DEFAULT_*_URL` in `generated.env` abgeleitet.
+`tt-infra` braucht fuer SSO-Redirects `PUBLIC_BASE_URL=https://beta.thun-tigers.net`; daraus werden `AUTH_BASE_URL` und die uebrigen `DEFAULT_*_URL` in `runtime.env` abgeleitet.
 
 Fuer manuelle Backups braucht `tt-infra` die Datenvolumes der anderen Services als Quellen. In der Beta-Compose werden `tt-members-data` und `analytics-uploads-data` deshalb in `tt-infra` auf `/backup-sources/tt-members-instance` und `/backup-sources/tt-analytics-uploads` gemountet.
 
@@ -63,16 +63,16 @@ Deploy-Ablauf (siehe HANDOFF-Dokument):
 cd /opt/tigers/tt-infra
 ./scripts/generate-env.sh beta
 docker compose \
-  --env-file ./instance/generated.env \
-  -f docker-compose.arcane.beta.yml \
-  up -d --build
+  --env-file ./.env --env-file ./instance/runtime.env \
+  -f compose.yml -f docker-compose.beta.yml \
+  up -d
 ```
 
 Wenn Arcane nur eine einzige Env-Datei akzeptiert, wird vor dem Import eine kombinierte Datei erzeugt, z.B.:
 
 ```bash
 python scripts/render_arcane_env.py \
-  --base ./instance/generated.env \
+  --base ./instance/runtime.env \
   --overlay releases/0.1.16.env \
   --output .env.arcane.beta.v0.1.16
 ```
@@ -81,14 +81,14 @@ Status:
 
 ```bash
 docker compose \
-  --env-file ./instance/generated.env \
-  -f docker-compose.arcane.beta.yml \
+  --env-file ./.env --env-file ./instance/runtime.env \
+  -f compose.yml -f docker-compose.beta.yml \
   ps
 ```
 
 ## Environment
 
-Die tatsaechlich verwendete Env-Datei ist `instance/generated.env`, erzeugt aus `instance/platform-config.json` durch `scripts/generate-env.sh beta`. Wichtige Werte fuer SSO und Cookies:
+Die Betreiberwerte liegen in `.env`; `instance/runtime.env` wird daraus mit automatisch verwalteten Secrets durch `scripts/generate-env.sh beta` erzeugt.
 
 ```dotenv
 PUBLIC_BASE_URL=https://beta.thun-tigers.net

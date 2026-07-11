@@ -43,4 +43,4 @@ Fuer serviceuebergreifende Anmeldung und Theme-Sync muessen folgende Punkte kons
 
 - `JWT_COOKIE_DOMAIN` in Beta auf `.thun-tigers.net`
 - identische `SSO_SHARED_SECRET` Werte in allen Services
-- `PUBLIC_BASE_URL=https://beta.thun-tigers.net` (daraus werden `AUTH_BASE_URL` und `DEFAULT_*_URL` in `generated.env` abgeleitet)
+- `PUBLIC_BASE_URL=https://beta.thun-tigers.net` (daraus werden `AUTH_BASE_URL` und `DEFAULT_*_URL` in `runtime.env` abgeleitet)

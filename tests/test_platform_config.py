@@ -21,16 +21,16 @@ def test_local_env_render_includes_core_urls():
 def test_beta_env_render_includes_image_tags():
     rendered = render_env('beta', version='0.1.8')
     assert 'COMPOSE_PROJECT_NAME=tigers-beta' in rendered
-    assert 'TT_AUTH_IMAGE_TAG=v0.1.8' in rendered
+    assert 'TIGERS_VERSION=v0.1.8' in rendered
     assert 'JWT_COOKIE_DOMAIN=.thun-tigers.net' in rendered
     assert 'AUTH_BASE_URL=https://beta.thun-tigers.net' in rendered
-    assert 'TT_HOST_BIND_IP=172.17.0.1' in rendered
+    assert 'DEPLOYMENT_NAME=tigers-beta' in rendered
+    assert 'CADDYFILE=Caddyfile.beta' in rendered
 
 
 def test_release_manifest_render_matches_expected_tags():
     rendered = render_sections(release_manifest_sections('0.1.8'))
-    assert 'TT_INFRA_IMAGE_TAG=v0.1.8' in rendered
-    assert 'TT_ATTENDANCE_IMAGE_TAG=v0.1.8' in rendered
+    assert rendered.count('TIGERS_VERSION=v0.1.8') == 1
 
 
 def test_production_profile_validates():

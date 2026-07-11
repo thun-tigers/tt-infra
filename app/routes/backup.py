@@ -143,9 +143,8 @@ def _backup_manifest():
 def _is_forbidden_config_member(member_name: str) -> bool:
     member_path = Path(member_name).as_posix()
     return member_path in {
-        'payload/platform-config.json',
         'payload/secrets.local.json',
-        'payload/generated.env',
+        'payload/runtime.env',
     } or member_path.startswith('payload/config/')
 
 
@@ -288,27 +287,15 @@ def _build_backup_archive():
 
 
 def _fix_auth_service_urls(auth_database_url: str) -> list[str]:
-    """After restoring tt-auth DB, overwrite service URLs with values from the
-    current config store so backup-restore never leaves stale URLs."""
-    import os
-    from config_store import load_profile_store_from_db
-    from platform_config import detect_profile, profile_values
-
-    profile = detect_profile(os.environ)
-    store = load_profile_store_from_db(
-        db.engine,
-        fallback_path=Path(current_app.config.get('TT_CONFIG_STORE_PATH', '')),
-    )
-    # Use profile_values() so PUBLIC_BASE_URL-derived keys (DEFAULT_*_URL) are
-    # computed correctly — raw store entries never contain these derived keys.
-    values = profile_values(profile, overrides=store.get(profile, {}))
+    """After restoring tt-auth DB, overwrite service URLs from the active env."""
+    public_base = current_app.config.get('PUBLIC_BASE_URL', '').rstrip('/')
 
     service_map = {
-        'members':    (values.get('DEFAULT_MEMBERS_URL'),    values.get('DEFAULT_MEMBERS_INTERNAL_URL',    'http://tt-members:5000')),
-        'agenda':     (values.get('DEFAULT_AGENDA_URL'),     values.get('DEFAULT_AGENDA_INTERNAL_URL',     'http://tt-agenda:5000')),
-        'analytics':  (values.get('DEFAULT_ANALYTICS_URL'),  values.get('DEFAULT_ANALYTICS_INTERNAL_URL',  'http://tt-analytics:5000')),
-        'infra':      (values.get('DEFAULT_INFRA_URL'),      values.get('DEFAULT_INFRA_INTERNAL_URL',      'http://tt-infra:5000')),
-        'attendance': (values.get('DEFAULT_ATTENDANCE_URL'), values.get('DEFAULT_ATTENDANCE_INTERNAL_URL', 'http://tt-attendance:5000')),
+        'members':    (f'{public_base}/members',    'http://tt-members:5000'),
+        'agenda':     (f'{public_base}/agenda',     'http://tt-agenda:5000'),
+        'analytics':  (f'{public_base}/analytics',  'http://tt-analytics:5000'),
+        'infra':      (f'{public_base}/infra',      'http://tt-infra:5000'),
+        'attendance': (f'{public_base}/attendance', 'http://tt-attendance:5000'),
     }
 
     dsn = _postgres_dsn(auth_database_url)

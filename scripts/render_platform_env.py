@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
+import re
+import secrets
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,13 +20,10 @@ def _ensure_repo_root() -> None:
 
 _ensure_repo_root()
 
-try:  # noqa: E402
-    from config_store import load_profile_store_from_db
-except ModuleNotFoundError:  # pragma: no cover - fallback for minimal VPS bootstrap
-    load_profile_store_from_db = None
 from platform_config import (  # noqa: E402
+    OPERATOR_KEYS,
     PROFILE_NAMES,
-    load_profile_store as load_profile_store_file,
+    flatten_sections,
     profile_sections,
     profile_validation_errors,
     release_manifest_sections,
@@ -39,7 +40,7 @@ def _build_parser() -> argparse.ArgumentParser:
     render_env_parser = subparsers.add_parser('render-env', help='Render a profile-specific .env file.')
     render_env_parser.add_argument('--profile', choices=('local', 'beta', 'production'), required=True)
     render_env_parser.add_argument('--version', help='Release version used for image tags, for example 0.1.8.')
-    render_env_parser.add_argument('--include-image-tags', action='store_true', help='Include TT_*_IMAGE_TAG entries.')
+    render_env_parser.add_argument('--include-image-tags', action='store_true', help='Include TIGERS_VERSION (legacy option).')
     render_env_parser.add_argument('--output', type=Path, help='Write to file instead of stdout.')
 
     render_release_parser = subparsers.add_parser('render-release-manifest', help='Render a release manifest file.')
@@ -49,11 +50,11 @@ def _build_parser() -> argparse.ArgumentParser:
     validate_parser = subparsers.add_parser('validate', help='Validate a rendered profile configuration.')
     validate_parser.add_argument('--profile', choices=('local', 'beta', 'production'), required=True)
     validate_parser.add_argument('--version', help='Release version used for image tags, for example 0.1.8.')
-    validate_parser.add_argument('--include-image-tags', action='store_true', help='Validate with TT_*_IMAGE_TAG entries.')
+    validate_parser.add_argument('--include-image-tags', action='store_true', help='Validate with TIGERS_VERSION (legacy option).')
 
     generate_parser = subparsers.add_parser(
         'generate',
-        help='Generate instance/generated.env from store + profile defaults (bootstrap without running Config-UI).',
+        help='Generate the internal instance/runtime.env with secrets and derived values.',
     )
     generate_parser.add_argument(
         '--profile', choices=('local', 'beta', 'production'), default='local',
@@ -63,16 +64,8 @@ def _build_parser() -> argparse.ArgumentParser:
         '--version', help='Release version used for image tags, for example 0.1.8.',
     )
     generate_parser.add_argument(
-        '--store', type=Path, default=None,
-        help='Path to platform-config.json (default: <repo>/instance/platform-config.json).',
-    )
-    generate_parser.add_argument(
-        '--db-url', default=None,
-        help='Read the config store from this SQLAlchemy database URL.',
-    )
-    generate_parser.add_argument(
         '--output', type=Path, default=None,
-        help='Output file (default: <repo>/instance/generated.env).',
+        help='Output file (default: <repo>/instance/runtime.env).',
     )
 
     return parser
@@ -111,25 +104,39 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == 'generate':
         repo_root = Path(__file__).resolve().parents[1]
-        store_path = args.store or (repo_root / 'instance' / 'platform-config.json')
-        output_path = args.output or (repo_root / 'instance' / 'generated.env')
-        if args.db_url:
-            if load_profile_store_from_db is None:
-                print('FAIL: SQLAlchemy ist fuer --db-url nicht verfuegbar.', file=sys.stderr)
-                return 1
-            from sqlalchemy import create_engine
+        output_path = args.output or (repo_root / 'instance' / 'runtime.env')
+        existing: dict[str, str] = {}
+        if output_path.exists():
+            for line in output_path.read_text(encoding='utf-8').splitlines():
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    existing[key] = value
+        legacy_secrets = repo_root / 'instance' / 'secrets.local.json'
+        if not existing and legacy_secrets.exists():
+            legacy = json.loads(legacy_secrets.read_text(encoding='utf-8'))
+            profile_values = legacy.get(args.profile, {}) if isinstance(legacy, dict) else {}
+            if isinstance(profile_values, dict):
+                existing.update({str(key): str(value) for key, value in profile_values.items() if value})
 
-            engine = create_engine(args.db_url)
-            store = load_profile_store_from_db(engine, fallback_path=store_path)
-            engine.dispose()
-        else:
-            store = load_profile_store_file(store_path, seed_defaults=True)
-            secret_path = store_path.with_name('secrets.local.json')
-            if secret_path.exists():
-                secret_store = load_profile_store_file(secret_path, seed_defaults=False)
-                for profile in PROFILE_NAMES:
-                    store[profile].update(secret_store.get(profile, {}))
-        overrides = store.get(args.profile, {})
+        overrides = {key: os.environ[key] for key in OPERATOR_KEYS if os.environ.get(key)}
+        secret_keys = (
+            'INFRA_SECRET_KEY', 'AUTH_SECRET_KEY', 'MEMBERS_SECRET_KEY',
+            'AGENDA_SECRET_KEY', 'ANALYTICS_SECRET_KEY', 'ATTENDANCE_SECRET_KEY',
+            'SSO_SHARED_SECRET', 'INTERNAL_API_SECRET', 'DEFAULT_ADMIN_PASSWORD',
+            'POSTGRES_INFRA_PASSWORD', 'POSTGRES_AUTH_PASSWORD',
+            'POSTGRES_MEMBERS_PASSWORD', 'POSTGRES_AGENDA_PASSWORD',
+            'POSTGRES_ANALYTICS_PASSWORD', 'POSTGRES_ATTENDANCE_PASSWORD',
+        )
+        for key in secret_keys:
+            overrides[key] = os.environ.get(key) or existing.get(key) or secrets.token_hex(32)
+
+        suffix = '_beta' if args.profile == 'beta' else ''
+        for service in ('infra', 'auth', 'members', 'agenda', 'analytics', 'attendance'):
+            upper = service.upper()
+            password = overrides[f'POSTGRES_{upper}_PASSWORD']
+            overrides[f'{upper}_DATABASE_URL'] = (
+                f'postgresql+psycopg://tt_{service}:{password}@tt-postgres:5432/tt_{service}{suffix}'
+            )
 
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
         render_version = args.version
@@ -141,14 +148,21 @@ def main(argv: list[str] | None = None) -> int:
             f'# Generated by tt-infra\n'
             f'# Profile:   {args.profile}\n'
             f'# Generated: {timestamp}\n'
-            f'# Source:    tt-infra config DB or export files\n'
-            f'# DO NOT EDIT MANUALLY — regenerate via ./scripts/generate-env.sh or Config-UI /config\n'
+            f'# Source:    profile defaults + environment overrides\n'
+            f'# DO NOT EDIT MANUALLY — regenerate via ./scripts/generate-env.sh\n'
             f'\n'
         )
-        content = header + render_sections(profile_sections(args.profile, version=render_version, overrides=overrides))
+        sections = profile_sections(args.profile, version=render_version, overrides=overrides)
+        values = flatten_sections(sections)
+        compose_text = (repo_root / 'compose.yml').read_text(encoding='utf-8')
+        compose_keys = set(re.findall(r'\$\{([A-Z][A-Z0-9_]*)', compose_text))
+        minimal_keys = {'DEPLOYMENT_NAME', 'PUBLIC_BASE_URL', 'TIGERS_VERSION'}
+        runtime_keys = sorted(compose_keys - minimal_keys)
+        content = header + ''.join(f'{key}={values.get(key, overrides.get(key, ""))}\n' for key in runtime_keys)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding='utf-8')
+        output_path.chmod(0o600)
         print(f'OK: {output_path} written (profile: {args.profile})')
 
         errors = profile_validation_errors(args.profile, overrides=overrides)
@@ -158,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.profile != 'local':
                 print(
                     f'FAIL: required values missing for profile "{args.profile}" — '
-                    f'open Config-UI at /config, fill in secrets, save, then re-run.',
+                    f'provide the missing value as an environment override and re-run.',
                     file=sys.stderr,
                 )
                 return 1

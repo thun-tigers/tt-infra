@@ -47,7 +47,7 @@ Weitere Repos können später dazukommen. Bei neuen Repos diese Liste aktualisie
 - Zentrale Config-Schicht liegt in `tt-infra`
 - `PUBLIC_BASE_URL` ist die zentrale Public URL pro Profil
 - `AUTH_BASE_URL` und `DEFAULT_*_URL` werden aus `PUBLIC_BASE_URL` abgeleitet
-- `generated.env` ist ein automatisch generiertes internes Artefakt
+- `runtime.env` ist ein automatisch generiertes internes Artefakt
 - Microservices sollen keine eigenen manuell gepflegten `.env`-Dateien benötigen
 - Services kommunizieren intern über Docker-DNS, z.B. `http://tt-auth:5000`
 - Nach aussen soll langfristig nur ein Entry Point sichtbar sein
@@ -61,8 +61,8 @@ Vor grösseren Änderungen lesen:
 - `README.md`
 - `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`
 - `platform_config.py`
-- `docker-compose.yml`
-- `docker-compose.arcane.beta.yml`
+- `compose.yml`
+- `docker-compose.beta.yml`
 - `Caddyfile.local`
 - `Caddyfile.beta`
 
@@ -103,9 +103,7 @@ Falls Labels nicht existieren, nicht scheitern; stattdessen im Issue-Body erwäh
 - Keine Secrets committen.
 - Keine Runtime-Dateien committen.
 - Nie committen:
-  - `instance/generated.env`
-  - `instance/platform-config.json`
-  - `platform-config.json`
+  - `instance/runtime.env`
   - `secrets.local.json`
   - `.env`
 - Keine neuen manuell gepflegten `.env`-Dateien in Microservices einführen.

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Bootstrap-Skript: Erzeugt instance/generated.env ohne laufende Config-UI.
+# Erzeugt das interne instance/runtime.env mit Secrets und Ableitungen.
 # Wird einmalig vor dem ersten "docker compose up" benötigt.
 #
 # Verwendung:
 #   ./scripts/generate-env.sh [--version X.Y.Z] [local|beta|production]
 #
 # Danach:
-#   docker compose --env-file ./instance/generated.env up -d --build
+#   docker compose --env-file .env --env-file ./instance/runtime.env -f compose.yml up -d
 #
-# Für beta/production müssen die Secrets zuerst in der Config-UI (/config)
-# oder in den exportierten Laufzeitdateien unter instance/ gesetzt werden.
+# Bedienbare Werte liegen in der minimalen Root-.env. Secrets werden beim
+# ersten Lauf zufaellig erzeugt und bei spaeteren Renderings beibehalten.
 
 set -euo pipefail
 
@@ -53,9 +53,17 @@ else
     PYTHON="python"
 fi
 
-ENV_FILE="$REPO_ROOT/instance/generated.env"
+ENV_FILE="$REPO_ROOT/instance/runtime.env"
+PROFILE_FILE="$REPO_ROOT/.env"
 
-echo "→ Generiere instance/generated.env für Profil '$PROFILE' ..."
+if [ -f "$PROFILE_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$PROFILE_FILE"
+    set +a
+fi
+
+echo "→ Generiere instance/runtime.env für Profil '$PROFILE' ..."
 ARGS=(generate --profile "$PROFILE")
 if [ -n "$VERSION" ]; then
     ARGS+=(--version "$VERSION")
@@ -63,19 +71,11 @@ fi
 "$PYTHON" "$SCRIPT_DIR/render_platform_env.py" "${ARGS[@]}"
 
 echo ""
-echo "Public URLs:"
-for KEY in PUBLIC_BASE_URL AUTH_BASE_URL DEFAULT_MEMBERS_URL DEFAULT_AGENDA_URL \
-           DEFAULT_ANALYTICS_URL DEFAULT_ATTENDANCE_URL DEFAULT_INFRA_URL; do
-    VAL="$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | cut -d= -f2-)"
-    if [ -n "$VAL" ]; then
-        printf "  %-28s %s\n" "${KEY}" "${VAL}"
-    else
-        printf "  %-28s (nicht gesetzt)\n" "${KEY}"
-    fi
-done
+echo "Public Entry Point: ${PUBLIC_BASE_URL}"
+echo "Service-URLs werden in compose.yml daraus abgeleitet."
 echo ""
 if [ -n "$VERSION" ]; then
-    echo "→ Bereit: docker compose --env-file ./instance/generated.env up -d --build"
+    echo "→ Bereit: docker compose --env-file .env --env-file ./instance/runtime.env -f compose.yml up -d"
 else
-    echo "→ Bereit: docker compose --env-file ./instance/generated.env up -d --build"
+    echo "→ Bereit: docker compose --env-file .env --env-file ./instance/runtime.env -f compose.yml up -d"
 fi

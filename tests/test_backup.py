@@ -118,52 +118,6 @@ def test_backup_download_and_restore_roundtrip(client, app, monkeypatch, tmp_pat
     assert analytics_upload_root.joinpath('clip.txt').read_text(encoding='utf-8') == 'analytics-before'
 
 
-def test_backup_restore_keeps_platform_config_store_unchanged(client, app, monkeypatch, tmp_path):
-    calls = []
-
-    def fake_run(command, capture_output, text, check):
-        calls.append(command)
-        if command[0] == 'pg_dump':
-            dump_path = Path(command[command.index('--file') + 1])
-            dump_path.parent.mkdir(parents=True, exist_ok=True)
-            dump_path.write_bytes(f'dump:{dump_path.stem}'.encode('utf-8'))
-            return type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})()
-        if command[0] == 'pg_restore':
-            return type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})()
-        raise AssertionError(f'Unexpected command: {command}')
-
-    monkeypatch.setattr('app.routes.backup.subprocess.run', fake_run)
-    _login_admin(client, app)
-
-    store_path = Path(app.config['TT_CONFIG_STORE_PATH'])
-    store_path.parent.mkdir(parents=True, exist_ok=True)
-    store_path.write_text(
-        json.dumps({'local': {'PUBLIC_BASE_URL': 'https://current.example'}}, indent=2),
-        encoding='utf-8',
-    )
-
-    response = client.get('/backup/download')
-    assert response.status_code == 200
-
-    store_path.write_text(
-        json.dumps({'local': {'PUBLIC_BASE_URL': 'https://changed.example'}}, indent=2),
-        encoding='utf-8',
-    )
-
-    restore_file = tmp_path / 'restore.tar.gz'
-    restore_file.write_bytes(response.data)
-
-    with restore_file.open('rb') as handle:
-        data = {'backup_file': (handle, 'restore.tar.gz'), 'confirm_restore': 'yes'}
-        restore_response = client.post('/backup/restore', data=data, content_type='multipart/form-data')
-
-    assert restore_response.status_code == 302
-    assert any(command[0] == 'pg_restore' for command in calls)
-    assert json.loads(store_path.read_text(encoding='utf-8')) == {
-        'local': {'PUBLIC_BASE_URL': 'https://changed.example'}
-    }
-
-
 def test_backup_restore_falls_back_when_pg_restore_hits_transaction_timeout(client, app, monkeypatch, tmp_path):
     calls = []
 

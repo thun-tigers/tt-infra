@@ -1,9 +1,18 @@
 services:
   tt-infra:
+    build: .
+    pull_policy: build
+    volumes:
+      - ./instance:/app/instance
     ports:
       - "${INFRA_PORT:-8084}:5000"
 
   tt-auth:
+    build:
+      context: ../tt-auth
+      args:
+        TT_COMMON_TAG: beta
+    pull_policy: build
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -12,6 +21,11 @@ services:
       - "${AUTH_PORT:-8085}:5000"
 
   tt-members:
+    build:
+      context: ../tt-members
+      args:
+        TT_COMMON_TAG: beta
+    pull_policy: build
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -20,6 +34,11 @@ services:
       - "${MEMBERS_PORT:-8088}:5000"
 
   tt-agenda:
+    build:
+      context: ../tt-agenda
+      args:
+        TT_COMMON_TAG: beta
+    pull_policy: build
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -28,6 +47,11 @@ services:
       - "${AGENDA_PORT:-8086}:5000"
 
   tt-analytics:
+    build:
+      context: ../tt-analytics
+      args:
+        TT_COMMON_TAG: beta
+    pull_policy: build
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -36,6 +60,11 @@ services:
       - "${ANALYTICS_PORT:-8087}:5000"
 
   tt-attendance:
+    build:
+      context: ../tt-attendance
+      args:
+        TT_COMMON_TAG: beta
+    pull_policy: build
     environment:
       PYTHONPATH: /opt/tt-common
     volumes:
@@ -44,5 +73,24 @@ services:
       - "${ATTENDANCE_PORT:-8089}:5000"
 
   tt-postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    pull_policy: build
     ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
+
+volumes:
+  tt-members-data:
+    external: true
+    name: tt-members_tt-members-data
+  postgres-data:
+    name: tigers-local_postgres-data
+  analytics-uploads-data:
+    name: tigers-local_analytics-uploads-data
+  redis-data:
+    name: tigers-local_redis-data
+  caddy-data:
+    name: tigers-local_caddy-data
+  caddy-config:
+    name: tigers-local_caddy-config

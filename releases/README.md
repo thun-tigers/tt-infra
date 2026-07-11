@@ -5,8 +5,8 @@ Dieses Verzeichnis pinnt freigegebene Plattform-Staende fuer deploybare Stacks.
 Grundsatz:
 
 - jede Datei `releases/X.Y.Z.env` beschreibt genau einen freigegebenen Plattform-Release
-- die Datei enthaelt ausschliesslich die Image-Tags der deploybaren Services
-- die eigentlichen Secrets und Betriebsparameter bleiben in der produktiven `.env`
+- neue Dateien enthalten genau einen gemeinsamen `TIGERS_VERSION`-Wert
+- Secrets und abgeleitete Laufzeitwerte bleiben in `instance/runtime.env`
 
 Beispiel:
 
@@ -17,15 +17,14 @@ Verwendung mit Docker Compose:
 
 ```bash
 docker compose \
-  --env-file .env.arcane.beta \
-  --env-file releases/0.1.20.env \
-  -f docker-compose.arcane.beta.yml \
+  --env-file .env --env-file instance/runtime.env \
+  -f compose.yml -f docker-compose.beta.yml \
   config
 ```
 
 Verwendung in Arcane:
 
-- Stack-Datei: `docker-compose.arcane.beta.yml`
+- Stack-Datei: `compose.yml` plus `docker-compose.beta.yml`
 - Environment-Variablen aus der Stack-`.env` setzen
 - zusaetzlich die Variablen aus dem gewuenschten Release-Manifest uebernehmen
 - die Compose-Datei selbst muss fuer einen Versionssprung nicht angepasst werden, solange die Image-Tags ueber das Manifest kommen
@@ -34,4 +33,4 @@ Verwendung in Arcane:
 Konvention:
 
 - Dateiname ohne `v`, also `releases/0.1.0.env`
-- enthaltene Tags mit `v`, also `TT_AUTH_IMAGE_TAG=v0.1.0`
+- neuer Inhalt mit `v`, also `TIGERS_VERSION=v0.1.0`

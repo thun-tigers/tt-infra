@@ -11,7 +11,7 @@ Voraussetzungen:
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+docker compose --env-file .env --env-file instance/runtime.env -f compose.yml -f docker-compose.local.yml up -d --build
 ```
 
 ## Erwartete Struktur
@@ -51,7 +51,7 @@ Empfohlener Weg:
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+docker compose --env-file .env --env-file instance/runtime.env -f compose.yml -f docker-compose.local.yml up -d --build
 ```
 
 ### Beta-Umgebung auf Server
@@ -59,30 +59,23 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 Voraussetzungen:
 
 - fuer einen Blank-Server: nur `tt-infra` selbst muss vorhanden sein, die Fachservices werden als GHCR-Images gezogen
-- `instance/platform-config.json` enthaelt die Secrets und wird vom Bootstrap oder der Config-UI erstellt
-- `docker-compose.beta.yml` ist vorhanden
+- `.env` enthaelt genau drei bedienbare Werte; Secrets werden in `instance/runtime.env` automatisch erzeugt und wiederverwendet
+- `compose.yml` ist die gemeinsame Stack-Definition; `docker-compose.beta.yml` ist nur ein kleiner Kompatibilitaets-Override
 
 Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
 
 ```bash
-./setup.sh beta
+./scripts/generate-env.sh beta
+docker compose --env-file .env --env-file instance/runtime.env -f compose.yml -f docker-compose.beta.yml up -d
 ```
 
-Blank-Server-Bootstrap im aktuellen Verzeichnis:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
-chmod +x setup.sh
-./setup.sh beta
-```
-
-Oder manuell:
+Manuell:
 
 ```bash
 ./scripts/generate-env.sh beta
 docker compose \
-  --env-file ./.env \
-  -f docker-compose.beta.yml \
+  --env-file ./.env --env-file ./instance/runtime.env \
+  -f compose.yml -f docker-compose.beta.yml \
   up -d --build
 ```
 
@@ -90,8 +83,8 @@ Status pruefen:
 
 ```bash
 docker compose \
-  --env-file ./.env \
-  -f docker-compose.beta.yml \
+  --env-file ./.env --env-file ./instance/runtime.env \
+  -f compose.yml -f docker-compose.beta.yml \
   ps
 ```
 
@@ -109,7 +102,7 @@ Fuer Produktion liegt eine environment-basierte Konfiguration bereit:
 
 - `.env.portainer.production.example` als Vorlage fuer Betriebsparameter und Secrets
 - `releases/*.env` fuer den freigegebenen Satz an Service-Versionen
-- Deployment erfolgt derzeit ebenfalls ueber `docker-compose.yml` in Verbindung mit `--env-file` (Secrets und Release-Manifest)
+- Deployment erfolgt ueber `compose.yml` in Verbindung mit dem generierten `--env-file`.
 
 Empfohlenes Modell:
 
@@ -163,12 +156,7 @@ Fuer freigegebene Plattform-Staende liegt in `tt-infra/releases` je Release eine
 
 Diese Dateien enthalten die Image-Tags pro Service, u.a.:
 
-- `TT_INFRA_IMAGE_TAG`
-- `TT_AUTH_IMAGE_TAG`
-- `TT_MEMBERS_IMAGE_TAG`
-- `TT_AGENDA_IMAGE_TAG`
-- `TT_ANALYTICS_IMAGE_TAG`
-- `TT_ATTENDANCE_IMAGE_TAG`
+- `TIGERS_VERSION` steuert alle Plattform-Images gemeinsam.
 
 Beispiel fuer einen Produktions-Check (Env-Datei aus `.env.portainer.production.example` abgeleitet):
 
@@ -176,7 +164,7 @@ Beispiel fuer einen Produktions-Check (Env-Datei aus `.env.portainer.production.
 docker compose \
   --env-file .env.portainer.production \
   --env-file releases/0.1.16.env \
-  -f docker-compose.yml \
+  -f compose.yml \
   config
 ```
 
@@ -186,13 +174,13 @@ Beispiel fuer ein Deploy:
 docker compose \
   --env-file .env.portainer.production \
   --env-file releases/0.1.16.env \
-  -f docker-compose.yml \
+  -f compose.yml \
   pull
 
 docker compose \
   --env-file .env.portainer.production \
   --env-file releases/0.1.16.env \
-  -f docker-compose.yml \
+  -f compose.yml \
   up -d
 ```
 

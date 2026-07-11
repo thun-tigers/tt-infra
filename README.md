@@ -28,13 +28,11 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 
 ## Struktur
 
-- docker-compose.yml zentraler Compose-Stack
+- `compose.yml` als einzige vollstaendige Stack-Definition
+- kleine Overrides fuer lokale Entwicklung sowie Beta/Produktion
 - docker-compose.local.yml lokale Port-Freigaben fuer Entwicklung
-- docker-compose.arcane.beta.yml Beta-Stack fuer Arcane plus Cloudflared Daemon
 - platform_config.py zentrale Quelle fuer die Platform-Profile
-- config_store.py DB-gestuetzte Config-Persistenz und Export-Logik
-- app/routes/config.py Konfigurationsoberflaeche fuer die aktuelle Umgebung und Exporte
-- app/templates/config/ UI fuer die laufende Umgebung
+- `.env` mit genau drei bedienbaren Betreiberwerten
 - scripts/render_platform_env.py Generator fuer `.env`-Dateien und Release-Manifeste
 - .env.arcane.beta aus der zentralen Konfiguration gerendert
 - .env.example aus der zentralen Konfiguration gerendert
@@ -49,13 +47,7 @@ Fachliche Anwendungen wie tt-members, tt-agenda, tt-analytics und tt-attendance 
 ## Schnellstart (lokal)
 
 1. Repositories tt-auth, tt-members, tt-agenda, tt-analytics und tt-attendance lokal neben dieses Repo legen.
-2. Stack mit einem Befehl starten — `setup.sh` fragt die Basisdaten ab, schreibt `.env`, startet zuerst Postgres und danach den restlichen Stack:
-
-```bash
-./setup.sh
-```
-
-Oder manuell:
+2. Die drei Werte in `.env` setzen, Laufzeit-Secrets erzeugen und starten:
 
 ```bash
 ./scripts/generate-env.sh local
@@ -71,27 +63,24 @@ Oder manuell:
 | http://localhost:8080/agenda/ | tt-agenda |
 | http://localhost:8080/analytics/ | tt-analytics |
 | http://localhost:8080/attendance/ | tt-attendance |
-| http://localhost:8080/infra/ | tt-infra (Config-UI, Admin) |
+| http://localhost:8080/infra/ | tt-infra (Admin) |
 
 Die direkten Service-Ports (8084–8089) sind lokal noch aktiv und koennen parallel verwendet werden.
 
-## Blank-Server-Bootstrap fuer Beta
+## Blank-Server-Start fuer Beta
 
-Auf einem leeren Server werden keine Fachservice-Repositories benoetigt. Das Bootstrap-`setup.sh` arbeitet im aktuellen Verzeichnis, kann bei Bedarf ein Archiv direkt dort entpacken, erzeugt die Konfiguration und startet den Beta-Stack ueber GHCR-Images.
+Auf einem leeren Server wird nur dieses Repo sowie Docker benoetigt. Die Fachservices werden als GHCR-Images gezogen.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o setup.sh
-chmod +x setup.sh
-./setup.sh beta
+./scripts/generate-env.sh beta
+docker compose --env-file .env --env-file instance/runtime.env -f compose.yml -f docker-compose.beta.yml up -d
 ```
-
-Wenn du einen fixen Plattform-Stand willst, setze vor dem Start `TT_INFRA_ARCHIVE_URL` auf das gewuenschte Release-Archiv.
 
 ## Deployment-Modi
 
-- docker-compose.yml zentraler Stack mit Caddy-Reverse-Proxy (Port 8080) und direkten Service-Ports
+- `compose.yml` zentraler Stack; Betreiberwerte kommen aus `.env`, Secrets aus `instance/runtime.env`
 - docker-compose.local.yml optionale Port-Variablen fuer Entwicklung
-- docker-compose.arcane.beta.yml serverseitiger Beta-Stack fuer Arcane plus Cloudflared Daemon
+- `docker-compose.beta.yml` und `docker-compose.prod.yml` enthalten nur kleine umgebungsspezifische Overrides
 
 ## Versionierung und Releases
 
@@ -106,14 +95,12 @@ Wenn du einen fixen Plattform-Stand willst, setze vor dem Start `TT_INFRA_ARCHIV
 ### Lokal auf dem Entwickler-Laptop
 
 ```bash
-./setup.sh                         # Erststart: .env erzeugen, Postgres + Stack starten
 ./scripts/deploy.sh                # Neustart ohne Rebuild
 ./scripts/deploy.sh --build        # Neustart mit Rebuild
-./scripts/generate-env.sh local    # Nur instance/generated.env aktualisieren
+./scripts/generate-env.sh local    # instance/runtime.env aktualisieren
 ```
 
-Config-UI (DB-basierte Secrets, URLs, Profil-Werte): `http://localhost:8080/infra/config`
-Die UI schreibt dabei `instance/platform-config.json` als öffentlichen Export und `instance/secrets.local.json` fuer Secrets.
+Es gibt keine Config-UI und keine Konfigurationspersistenz in PostgreSQL. Genau drei bedienbare Werte liegen in `.env`; `instance/runtime.env` enthält ausschliesslich automatisch verwaltete Secrets und Ableitungen.
 
 ### URL-Ableitung
 
@@ -129,8 +116,7 @@ Alle weiteren Public URLs werden zur Laufzeit automatisch abgeleitet und sind ni
 | `DEFAULT_ATTENDANCE_URL` | `{PUBLIC_BASE_URL}/attendance` |
 | `DEFAULT_INFRA_URL` | `{PUBLIC_BASE_URL}/infra` |
 
-Alle abgeleiteten Werte stehen weiterhin in `instance/generated.env` (Abwaertskompatibilitaet) und werden von Docker Compose und tt-auth beim Start eingelesen.
-Die Config-UI zeigt die abgeleiteten Felder als schreibgeschuetzt an ("Abgeleitet"-Badge).
+Alle abgeleiteten Werte stehen im geschützten Maschinenartefakt `instance/runtime.env`.
 
 ## Beta auf Server
 
@@ -151,14 +137,14 @@ Alle fachlichen Services verwenden denselben Einstieg:
 - `tt-auth` startet den SSO-Flow
 - der Service nimmt das Token unter `/auth/sso` an und springt danach auf `/`
 
-Start auf Server (mit generierter `.env`, siehe [`docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`](docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md)):
+Start auf dem Server mit generierter Laufzeitkonfiguration:
 
 ```bash
 ./scripts/generate-env.sh beta
 docker compose \
-	--env-file ./.env \
-	-f docker-compose.arcane.beta.yml \
-	up -d --build
+	--env-file ./.env --env-file ./instance/runtime.env \
+	-f compose.yml -f docker-compose.beta.yml \
+	up -d
 ```
 
 ## Hinweise
