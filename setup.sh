@@ -311,9 +311,10 @@ build_env_file() {
     local cookie_domain="$3"
     local project_name="$4"
     local internal_network_name="$5"
-    local admin_user="$6"
-    local admin_pass="$7"
-    local postgres_host_port="${8:-}"
+    local internal_network_external="$6"
+    local admin_user="$7"
+    local admin_pass="$8"
+    local postgres_host_port="${9:-}"
 
     local infra_secret auth_secret members_secret agenda_secret analytics_secret attendance_secret sso_shared_secret internal_api_secret
     local postgres_infra_password postgres_auth_password postgres_members_password postgres_agenda_password postgres_analytics_password postgres_attendance_password
@@ -389,6 +390,7 @@ CREATE_DEFAULT_USERS=${default_users}
 CREATE_DEFAULT_SERVICES=true
 SSO_TOKEN_EXPIRY_SECONDS=60
 TT_INTERNAL_NETWORK_NAME=${internal_network_name}
+TT_INTERNAL_NETWORK_EXTERNAL=${internal_network_external}
 
 INFRA_DATABASE_URL=postgresql+psycopg://tt_infra:${postgres_infra_password}@tt-postgres:5432/tt_infra${db_suffix}
 AUTH_DATABASE_URL=postgresql+psycopg://tt_auth:${postgres_auth_password}@tt-postgres:5432/tt_auth${db_suffix}
@@ -521,13 +523,21 @@ require_cmd docker
 docker info >/dev/null 2>&1 || die "Docker-Daemon laeuft nicht oder ist nicht erreichbar."
 docker compose version >/dev/null 2>&1 || die "Docker Compose ist nicht verfuegbar."
 
+if docker network inspect "$INTERNAL_NETWORK_NAME" >/dev/null 2>&1; then
+    INTERNAL_NETWORK_EXTERNAL="true"
+    info "Docker-Netzwerk existiert bereits: $INTERNAL_NETWORK_NAME"
+else
+    INTERNAL_NETWORK_EXTERNAL="false"
+    info "Docker-Netzwerk wird von Compose erzeugt: $INTERNAL_NETWORK_NAME"
+fi
+
 case "$PROFILE" in
     local)
         ensure_docker_volume "tt-members_tt-members-data"
         ;;
 esac
 
-build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$INTERNAL_NETWORK_NAME" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
+build_env_file "$VERSION" "$PUBLIC_BASE_URL" "$JWT_COOKIE_DOMAIN" "$COMPOSE_PROJECT_NAME" "$INTERNAL_NETWORK_NAME" "$INTERNAL_NETWORK_EXTERNAL" "$ADMIN_USERNAME" "$ADMIN_PASSWORD" "$POSTGRES_HOST_PORT"
 
 COMPOSE_ARGS=()
 while IFS= read -r arg; do

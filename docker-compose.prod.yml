@@ -295,6 +295,7 @@ networks:
   tigers-internal:
     name: ${TT_INTERNAL_NETWORK_NAME:-tigers-prod-internal}
     driver: bridge
+    external: ${TT_INTERNAL_NETWORK_EXTERNAL:-false}
 
 volumes:
   tt-infra-data:

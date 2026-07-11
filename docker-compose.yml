@@ -332,6 +332,7 @@ networks:
   tigers-internal:
     name: ${TT_INTERNAL_NETWORK_NAME:-tigers-internal}
     driver: bridge
+    external: ${TT_INTERNAL_NETWORK_EXTERNAL:-false}
 
 volumes:
   tt-members-data:
