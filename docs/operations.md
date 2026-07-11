@@ -68,6 +68,14 @@ Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
 ./setup.sh beta
 ```
 
+Blank-Server-Bootstrap:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thun-tigers/tt-infra/main/setup.sh -o /tmp/tt-infra-setup.sh
+chmod +x /tmp/tt-infra-setup.sh
+TT_INFRA_REPO_DIR=/opt/tigers/tt-infra TT_INFRA_CLONE_REF=v0.1.20 /tmp/tt-infra-setup.sh beta
+```
+
 Oder manuell:
 
 ```bash
