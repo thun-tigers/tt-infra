@@ -10,7 +10,7 @@ services:
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       MEMBERS_INSTANCE_DIR: /app/instance/tt-members-instance
       ANALYTICS_UPLOAD_ROOT: /app/instance/tt-analytics-uploads
-    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ./instance:/app/instance
     ports:
@@ -109,7 +109,7 @@ services:
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
-    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:

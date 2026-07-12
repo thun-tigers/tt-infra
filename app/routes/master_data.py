@@ -158,6 +158,13 @@ def _auth_request(method, path, body=None):
         return None, {}
 
 
+def _fetch_member_roles():
+    status, data = _auth_request('GET', '/api/internal/member-roles')
+    if status is None or status >= 400:
+        return [], 'Mitgliedsrollen konnten nicht geladen werden.'
+    return data.get('roles', []), None
+
+
 def _fetch_services():
     status, data = _auth_request('GET', '/api/internal/services')
     if status is None or status >= 400:
@@ -292,11 +299,72 @@ def _fetch_training_categories():
     return data.get('categories', []), None
 
 
-_AUDIENCE_OPTIONS = [
-    ('player', 'Spieler'),
-    ('coach', 'Betreuer / Coach'),
-    ('team_manager', 'Teammanager'),
-]
+@bp.route('/mitgliedsrollen')
+@login_required
+@admin_required
+def member_roles(current_user):
+    roles, error = _fetch_member_roles()
+    if error:
+        flash(error, 'danger')
+    return render_template('master_data_member_roles.html', current_user=current_user, roles=roles)
+
+
+@bp.route('/mitgliedsrollen/new', methods=['POST'])
+@login_required
+@admin_required
+def member_roles_new(current_user):
+    payload = {
+        'key': (request.form.get('key') or '').strip().lower(),
+        'label': (request.form.get('label') or '').strip(),
+        'sort_order': int(request.form.get('sort_order') or 0),
+        'is_active': request.form.get('is_active') == 'y',
+    }
+    status, data = _auth_request('POST', '/api/internal/member-roles', body=payload)
+    if status is None:
+        flash('Rolle konnte nicht erstellt werden.', 'danger')
+    elif status == 409:
+        flash(f'Schlüssel "{payload["key"]}" existiert bereits.', 'danger')
+    elif status >= 400:
+        flash('Ungültiger Schlüssel oder fehlende Bezeichnung.', 'danger')
+    else:
+        flash(f'Rolle "{payload["label"]}" erstellt.', 'success')
+    return redirect(url_for('master_data.member_roles'))
+
+
+@bp.route('/mitgliedsrollen/<int:role_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def member_roles_edit(current_user, role_id):
+    payload = {
+        'label': (request.form.get('label') or '').strip(),
+        'sort_order': int(request.form.get('sort_order') or 0),
+        'is_active': request.form.get('is_active') == 'y',
+    }
+    status, _ = _auth_request('PUT', f'/api/internal/member-roles/{role_id}', body=payload)
+    if status is None:
+        flash('Rolle konnte nicht gespeichert werden.', 'danger')
+    elif status == 404:
+        flash('Rolle nicht gefunden.', 'danger')
+    elif status >= 400:
+        flash('Rolle konnte nicht gespeichert werden.', 'danger')
+    else:
+        flash(f'Rolle "{payload["label"]}" gespeichert.', 'success')
+    return redirect(url_for('master_data.member_roles'))
+
+
+@bp.route('/mitgliedsrollen/<int:role_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def member_roles_delete(current_user, role_id):
+    status, data = _auth_request('DELETE', f'/api/internal/member-roles/{role_id}')
+    if status is None or (status >= 400 and status != 404):
+        if data.get('error') == 'in_use':
+            flash('Rolle wird noch von Mitgliedschaften verwendet und kann nicht gelöscht werden.', 'danger')
+        else:
+            flash('Rolle konnte nicht gelöscht werden.', 'danger')
+    else:
+        flash('Rolle gelöscht.', 'success')
+    return redirect(url_for('master_data.member_roles'))
 
 
 @bp.route('/trainingskategorien')
@@ -306,11 +374,13 @@ def training_categories(current_user):
     cats, error = _fetch_training_categories()
     if error:
         flash(error, 'danger')
+    roles, _ = _fetch_member_roles()
+    audience_options = [(r['key'], r['label']) for r in roles if r.get('is_active')]
     return render_template(
         'master_data_training_categories.html',
         current_user=current_user,
         categories=cats,
-        audience_options=_AUDIENCE_OPTIONS,
+        audience_options=audience_options,
     )
 
 

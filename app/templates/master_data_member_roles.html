@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Stammdaten: Mitgliedsrollen – Tigers Infra{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <div>
+        <h1 class="text-lg font-bold text-slate-900 dark:text-white">Stammdaten: Mitgliedsrollen</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Rollen für Team-Mitgliedschaften und Anmeldungsregeln.</p>
+    </div>
+    <div class="flex items-center justify-end gap-2">
+        <a href="{{ url_for('master_data.positions') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+            <i class="bi bi-diagram-3"></i> Positionen
+        </a>
+        <a href="{{ url_for('master_data.training_categories') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+            <i class="bi bi-tags"></i> Trainingskategorien
+        </a>
+        <a href="{{ url_for('master_data.services') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+            <i class="bi bi-app-indicator"></i> Services
+        </a>
+    </div>
+
+    <section class="bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-semibold">Vorhandene Rollen</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ roles|length }} Einträge</p>
+            </div>
+            <button type="button" class="add-new-btn inline-flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 font-semibold rounded-lg transition text-sm">
+                <i class="bi bi-plus-lg"></i> Neu
+            </button>
+        </div>
+
+        <div id="new-role-panel" class="hidden px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/20">
+            <form method="POST" action="{{ url_for('master_data.member_roles_new') }}" class="grid grid-cols-1 md:grid-cols-[160px_1fr_100px_auto_auto] gap-3 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Schlüssel</label>
+                    <input id="new-role-key" type="text" name="key" maxlength="32" required placeholder="head_coach"
+                        class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bezeichnung</label>
+                    <input type="text" name="label" maxlength="100" required placeholder="Head Coach"
+                        class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sortierung</label>
+                    <input type="number" name="sort_order" value="{{ (roles|length) + 1 }}" min="0"
+                        class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm">
+                </div>
+                <button type="button" id="new-role-cancel" class="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                    Abbrechen
+                </button>
+                <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm">
+                    <i class="bi bi-plus-lg"></i> Erstellen
+                </button>
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-700/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Schlüssel</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Bezeichnung</th>
+                        <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-300">Status</th>
+                        <th class="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-300">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                {% for role in roles %}
+                    <tr class="role-row {% if not role.is_active %}bg-slate-50 dark:bg-slate-900/30{% endif %}"
+                        data-role-id="{{ role.id }}"
+                        data-edit-url="{{ url_for('master_data.member_roles_edit', role_id=role.id) }}">
+                        <td class="px-4 py-3 align-middle">
+                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-mono text-xs">{{ role.key }}</span>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="view-mode label-display font-medium text-slate-900 dark:text-white">{{ role.label }}</span>
+                            <input class="edit-mode hidden w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-sm"
+                                   type="text" name="label" value="{{ role.label }}" maxlength="100">
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <span class="view-mode status-badge {% if role.is_active %}inline-flex px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium{% else %}inline-flex px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium{% endif %}">
+                                {% if role.is_active %}Aktiv{% else %}Inaktiv{% endif %}
+                            </span>
+                            <label class="edit-mode hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                                <input type="checkbox" name="is_active" value="y" {% if role.is_active %}checked{% endif %} class="w-4 h-4 text-indigo-600 border-slate-300 rounded">
+                                Aktiv
+                            </label>
+                        </td>
+                        <td class="px-4 py-3 align-middle">
+                            <div class="view-mode flex items-center justify-end gap-1">
+                                <button type="button" class="edit-toggle p-2 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('master_data.member_roles_delete', role_id=role.id) }}"
+                                    onsubmit="return confirm('Rolle {{ role.key }} wirklich löschen?')">
+                                    <button type="submit" class="p-2 text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition" title="Löschen">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="edit-mode hidden flex items-center justify-end gap-2">
+                                <button type="button" class="cancel-edit px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                                    Abbrechen
+                                </button>
+                                <button type="button" class="save-edit inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition">
+                                    <i class="bi bi-check-lg"></i> Speichern
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                            Keine Rollen vorhanden.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const addBtn = document.querySelector('.add-new-btn');
+    const newPanel = document.getElementById('new-role-panel');
+    const newCancel = document.getElementById('new-role-cancel');
+
+    addBtn?.addEventListener('click', () => {
+        newPanel.classList.remove('hidden');
+        document.getElementById('new-role-key')?.focus();
+    });
+    newCancel?.addEventListener('click', () => newPanel.classList.add('hidden'));
+
+    const rows = () => Array.from(document.querySelectorAll('.role-row'));
+
+    const setEditMode = (row, editing) => {
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.toggle('hidden', editing));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.toggle('hidden', !editing));
+        if (editing) row.querySelector('input[name="label"]')?.focus();
+    };
+
+    const closeAllEditors = () => rows().forEach(row => setEditMode(row, false));
+
+    document.querySelector('tbody')?.addEventListener('click', async (event) => {
+        const editBtn = event.target.closest('.edit-toggle');
+        if (editBtn) {
+            const row = editBtn.closest('.role-row');
+            const isEditing = !row.querySelector('.edit-mode').classList.contains('hidden');
+            closeAllEditors();
+            if (!isEditing) setEditMode(row, true);
+            return;
+        }
+
+        const cancelBtn = event.target.closest('.cancel-edit');
+        if (cancelBtn) { setEditMode(cancelBtn.closest('.role-row'), false); return; }
+
+        const saveBtn = event.target.closest('.save-edit');
+        if (saveBtn) {
+            const row = saveBtn.closest('.role-row');
+            const url = row.dataset.editUrl;
+            const label = row.querySelector('input[name="label"]').value.trim();
+            const isActive = row.querySelector('input[name="is_active"]').checked;
+            const formData = new FormData();
+            formData.append('label', label);
+            formData.append('sort_order', row.dataset.roleId);
+            if (isActive) formData.append('is_active', 'y');
+            saveBtn.disabled = true;
+            try {
+                const res = await fetch(url, { method: 'POST', body: formData });
+                if (res.ok) {
+                    row.querySelector('.label-display').textContent = label;
+                    const badge = row.querySelector('.status-badge');
+                    if (isActive) {
+                        badge.textContent = 'Aktiv';
+                        badge.className = 'view-mode status-badge inline-flex px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium';
+                    } else {
+                        badge.textContent = 'Inaktiv';
+                        badge.className = 'view-mode status-badge inline-flex px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium';
+                    }
+                    setEditMode(row, false);
+                } else { alert('Fehler beim Speichern.'); }
+            } catch { alert('Fehler beim Speichern.'); }
+            finally { saveBtn.disabled = false; }
+        }
+    });
+})();
+</script>
+{% endblock %}
