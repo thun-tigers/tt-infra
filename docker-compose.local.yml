@@ -2,6 +2,15 @@ services:
   tt-infra:
     build: .
     pull_policy: build
+    env_file: .env
+    environment:
+      SECRET_KEY: ${INFRA_SECRET_KEY}
+      DATABASE_URL: ${INFRA_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      MEMBERS_INSTANCE_DIR: /app/instance/tt-members-instance
+      ANALYTICS_UPLOAD_ROOT: /app/instance/tt-analytics-uploads
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ./instance:/app/instance
     ports:
@@ -13,8 +22,14 @@ services:
       args:
         TT_COMMON_TAG: beta
     pull_policy: build
+    env_file: .env
     environment:
       PYTHONPATH: /opt/tt-common
+      SECRET_KEY: ${AUTH_SECRET_KEY}
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:
@@ -26,8 +41,14 @@ services:
       args:
         TT_COMMON_TAG: beta
     pull_policy: build
+    env_file: .env
     environment:
       PYTHONPATH: /opt/tt-common
+      SECRET_KEY: ${MEMBERS_SECRET_KEY}
+      DATABASE_URL: ${MEMBERS_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:
@@ -39,8 +60,15 @@ services:
       args:
         TT_COMMON_TAG: beta
     pull_policy: build
+    env_file: .env
     environment:
       PYTHONPATH: /opt/tt-common
+      SECRET_KEY: ${AGENDA_SECRET_KEY}
+      DATABASE_URL: ${AGENDA_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:
@@ -52,8 +80,13 @@ services:
       args:
         TT_COMMON_TAG: beta
     pull_policy: build
+    env_file: .env
     environment:
       PYTHONPATH: /opt/tt-common
+      SECRET_KEY: ${ANALYTICS_SECRET_KEY}
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:
@@ -65,8 +98,18 @@ services:
       args:
         TT_COMMON_TAG: beta
     pull_policy: build
+    env_file: .env
     environment:
       PYTHONPATH: /opt/tt-common
+      SECRET_KEY: ${ATTENDANCE_SECRET_KEY}
+      DATABASE_URL: ${ATTENDANCE_DATABASE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
+      TT_AUTH_INTERNAL_URL: http://tt-auth:5000
+      TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
+      TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
+      TT_INFRA_INTERNAL_URL: http://tt-infra:5000
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ../tt-common:/opt/tt-common:ro
     ports:
