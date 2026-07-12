@@ -22,7 +22,7 @@ def _auth_base():
 
 
 def _agenda_base():
-    return current_app.config.get('TT_AGENDA_INTERNAL_URL', 'http://tt-agenda:5000').rstrip('/')
+    return (current_app.config.get('TT_AGENDA_INTERNAL_URL') or 'http://tt-agenda:5000').rstrip('/')
 
 
 def _auth_headers():
