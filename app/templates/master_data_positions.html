@@ -7,12 +7,13 @@
         <h1 class="text-lg font-bold text-slate-900 dark:text-white">Stammdaten: Positionen</h1>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Zentrale Liste für Profil und Agenda.</p>
     </div>
-    <div class="flex items-center justify-end">
-        <div class="flex items-center gap-2">
-            <a href="{{ url_for('master_data.services') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
-                <i class="bi bi-app-indicator"></i> Services
-            </a>
-        </div>
+    <div class="flex items-center justify-end gap-2">
+        <a href="{{ url_for('master_data.training_categories') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+            <i class="bi bi-tags"></i> Trainingskategorien
+        </a>
+        <a href="{{ url_for('master_data.services') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 text-xs font-medium transition">
+            <i class="bi bi-app-indicator"></i> Services
+        </a>
     </div>
 
     <section class="bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700 overflow-hidden">

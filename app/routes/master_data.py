@@ -21,6 +21,10 @@ def _auth_base():
     ).rstrip('/')
 
 
+def _agenda_base():
+    return current_app.config.get('TT_AGENDA_INTERNAL_URL', 'http://tt-agenda:5000').rstrip('/')
+
+
 def _auth_headers():
     secret = current_app.config.get('INTERNAL_API_SECRET')
     return {'X-TT-Internal-Secret': secret} if secret else {}
@@ -253,4 +257,123 @@ def _service_payload_from_form():
         'required_role': request.form.get('required_role') or 'user',
         'is_active': request.form.get('is_active') == 'y',
         'sort_order': int(request.form.get('sort_order') or 0),
+    }
+
+
+# ── Trainingskategorien (Proxy → tt-agenda) ────────────────────────────────
+
+def _agenda_request(method, path, body=None):
+    """HTTP call to tt-agenda internal API."""
+    url = f'{_agenda_base()}{path}'
+    data = json.dumps(body).encode() if body is not None else None
+    headers = dict(_auth_headers())
+    if data is not None:
+        headers['Content-Type'] = 'application/json'
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            return resp.status, json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        body_bytes = exc.read()
+        try:
+            payload = json.loads(body_bytes.decode())
+        except Exception:
+            payload = {}
+        return exc.code, payload
+    except urllib.error.URLError as exc:
+        current_app.logger.warning('tt-agenda request failed: %s %s – %s', method, path, exc)
+        return None, {}
+
+
+def _fetch_training_categories():
+    status, data = _agenda_request('GET', '/api/internal/agenda-categories')
+    if status is None or status >= 400:
+        return [], 'Trainingskategorien konnten nicht geladen werden.'
+    return data.get('categories', []), None
+
+
+_AUDIENCE_OPTIONS = [
+    ('player', 'Spieler'),
+    ('coach', 'Betreuer / Coach'),
+    ('team_manager', 'Teammanager'),
+]
+
+
+@bp.route('/trainingskategorien')
+@login_required
+@admin_required
+def training_categories(current_user):
+    cats, error = _fetch_training_categories()
+    if error:
+        flash(error, 'danger')
+    return render_template(
+        'master_data_training_categories.html',
+        current_user=current_user,
+        categories=cats,
+        audience_options=_AUDIENCE_OPTIONS,
+    )
+
+
+@bp.route('/trainingskategorien/new', methods=['POST'])
+@login_required
+@admin_required
+def training_categories_new(current_user):
+    payload = _category_payload_from_form()
+    status, data = _agenda_request('POST', '/api/internal/agenda-categories', body=payload)
+    if status is None:
+        flash('Kategorie konnte nicht erstellt werden.', 'danger')
+    elif status == 409:
+        flash(f'Schlüssel "{payload["key"]}" existiert bereits.', 'danger')
+    elif status == 400:
+        flash('Ungültiger Schlüssel oder fehlende Bezeichnung.', 'danger')
+    elif status >= 400:
+        flash('Kategorie konnte nicht erstellt werden.', 'danger')
+    else:
+        flash(f'Kategorie "{payload["label"]}" erstellt.', 'success')
+    return redirect(url_for('master_data.training_categories'))
+
+
+@bp.route('/trainingskategorien/<string:key>/edit', methods=['POST'])
+@login_required
+@admin_required
+def training_categories_edit(current_user, key):
+    payload = _category_payload_from_form()
+    status, data = _agenda_request('PUT', f'/api/internal/agenda-categories/{key}', body=payload)
+    if status is None:
+        flash('Kategorie konnte nicht gespeichert werden.', 'danger')
+    elif status == 404:
+        flash('Kategorie nicht gefunden.', 'danger')
+    elif status >= 400:
+        flash('Kategorie konnte nicht gespeichert werden.', 'danger')
+    else:
+        flash(f'Kategorie "{payload["label"]}" gespeichert.', 'success')
+    return redirect(url_for('master_data.training_categories'))
+
+
+@bp.route('/trainingskategorien/<string:key>/delete', methods=['POST'])
+@login_required
+@admin_required
+def training_categories_delete(current_user, key):
+    status, data = _agenda_request('DELETE', f'/api/internal/agenda-categories/{key}')
+    if status is None or (status >= 400 and status != 404):
+        if data.get('error') == 'in_use':
+            flash(f'Kategorie "{key}" wird noch von Trainings verwendet und kann nicht gelöscht werden.', 'danger')
+        else:
+            flash('Kategorie konnte nicht gelöscht werden.', 'danger')
+    else:
+        flash(f'Kategorie "{key}" gelöscht.', 'success')
+    return redirect(url_for('master_data.training_categories'))
+
+
+def _category_payload_from_form():
+    return {
+        'key': (request.form.get('key') or '').strip().lower(),
+        'label': (request.form.get('label') or '').strip(),
+        'icon': (request.form.get('icon') or 'bi-calendar-event').strip(),
+        'badge_class': (request.form.get('badge_class') or '').strip(),
+        'sort_order': int(request.form.get('sort_order') or 0),
+        'active': request.form.get('active') == 'y',
+        'attendance_required_for': request.form.getlist('attendance_required_for'),
+        'attendance_allowed_for': request.form.getlist('attendance_allowed_for'),
+        'show_presence_tracking': request.form.get('show_presence_tracking') == 'y',
     }
