@@ -153,7 +153,7 @@ def _auth_request(method, path, body=None):
         except Exception:
             payload = {}
         return exc.code, payload
-    except urllib.error.URLError as exc:
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
         current_app.logger.warning('tt-auth request failed: %s %s – %s', method, path, exc)
         return None, {}
 
@@ -280,7 +280,7 @@ def _agenda_request(method, path, body=None):
         except Exception:
             payload = {}
         return exc.code, payload
-    except urllib.error.URLError as exc:
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
         current_app.logger.warning('tt-agenda request failed: %s %s – %s', method, path, exc)
         return None, {}
 
