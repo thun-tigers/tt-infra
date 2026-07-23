@@ -59,12 +59,12 @@ Weitere Repos können später dazukommen. Bei neuen Repos diese Liste aktualisie
 Vor grösseren Änderungen lesen:
 
 - `README.md`
-- `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`
+- `docs/CONFIG_UI_AND_RUNTIME_ENV.md`
 - `platform_config.py`
 - `compose.yml`
 - `docker-compose.beta.yml`
-- `Caddyfile.local`
-- `Caddyfile.beta`
+- `caddy-local/Caddyfile`
+- `caddy/Caddyfile`
 
 ## Issue- und Project-Arbeitsweise
 

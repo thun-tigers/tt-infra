@@ -62,7 +62,7 @@ Voraussetzungen:
 - `.env` enthaelt genau drei bedienbare Werte; Secrets werden in `instance/runtime.env` automatisch erzeugt und wiederverwendet
 - `compose.yml` ist die gemeinsame Stack-Definition; `docker-compose.beta.yml` ist nur ein kleiner Kompatibilitaets-Override
 
-Start oder Update (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`):
+Start oder Update (siehe `docs/CONFIG_UI_AND_RUNTIME_ENV.md`):
 
 ```bash
 ./scripts/generate-env.sh beta
@@ -220,7 +220,7 @@ Bestandsnotiz:
 
 - Cloudflare bleibt der externe Edge-Layer fuer DNS, TLS, WAF und Tunnel-Terminierung.
 - Der Cloudflared Daemon leitet `beta.thun-tigers.net` pfad-basiert auf den Caddy-Reverse-Proxy (`tt-proxy`) im Stack (`http://host.docker.internal:80`).
-- Details siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md` und `docs/beta-cloudflared-daemon.md`.
+- Details siehe `docs/CONFIG_UI_AND_RUNTIME_ENV.md` und `docs/beta-cloudflared-daemon.md`.
 
 ## Bekannte Betriebsnotiz
 

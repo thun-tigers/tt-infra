@@ -23,6 +23,7 @@ _ensure_repo_root()
 from platform_config import (  # noqa: E402
     OPERATOR_KEYS,
     PROFILE_NAMES,
+    PUBLIC_DERIVED_KEYS,
     flatten_sections,
     profile_sections,
     profile_validation_errors,
@@ -66,6 +67,10 @@ def _build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument(
         '--output', type=Path, default=None,
         help='Output file (default: <repo>/instance/runtime.env).',
+    )
+    generate_parser.add_argument(
+        '--config-ui-path', type=Path, default=None,
+        help='Werte aus der /config-Web-UI (default: <repo>/instance/generated.env).',
     )
 
     return parser
@@ -118,7 +123,6 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(profile_values, dict):
                 existing.update({str(key): str(value) for key, value in profile_values.items() if value})
 
-        overrides = {key: os.environ[key] for key in OPERATOR_KEYS if os.environ.get(key)}
         secret_keys = (
             'INFRA_SECRET_KEY', 'AUTH_SECRET_KEY', 'MEMBERS_SECRET_KEY',
             'AGENDA_SECRET_KEY', 'ANALYTICS_SECRET_KEY', 'ATTENDANCE_SECRET_KEY',
@@ -127,6 +131,24 @@ def main(argv: list[str] | None = None) -> int:
             'POSTGRES_MEMBERS_PASSWORD', 'POSTGRES_AGENDA_PASSWORD',
             'POSTGRES_ANALYTICS_PASSWORD', 'POSTGRES_ATTENDANCE_PASSWORD',
         )
+
+        # Werte, die ueber /config in tt-infra gespeichert wurden (instance/generated.env).
+        # Niedrigste Prioritaet nach den Profil-Defaults: Secrets und die von
+        # PUBLIC_BASE_URL abgeleiteten URLs werden bewusst ausgeschlossen, damit ein
+        # veraltetes generated.env nie ein bereits rotiertes Secret ueberschreibt.
+        config_ui_path = args.config_ui_path or (repo_root / 'instance' / 'generated.env')
+        config_ui_values: dict[str, str] = {}
+        if config_ui_path.exists():
+            for line in config_ui_path.read_text(encoding='utf-8').splitlines():
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config_ui_values[key.strip()] = value
+        overrides = {
+            key: value for key, value in config_ui_values.items()
+            if key not in secret_keys and key not in PUBLIC_DERIVED_KEYS
+        }
+
+        overrides.update({key: os.environ[key] for key in OPERATOR_KEYS if os.environ.get(key)})
         for key in secret_keys:
             overrides[key] = os.environ.get(key) or existing.get(key) or secrets.token_hex(32)
 

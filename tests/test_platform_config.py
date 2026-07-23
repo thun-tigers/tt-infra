@@ -25,7 +25,7 @@ def test_beta_env_render_includes_image_tags():
     assert 'JWT_COOKIE_DOMAIN=.thun-tigers.net' in rendered
     assert 'AUTH_BASE_URL=https://beta.thun-tigers.net' in rendered
     assert 'DEPLOYMENT_NAME=tigers-beta' in rendered
-    assert 'CADDYFILE=Caddyfile.beta' in rendered
+    assert 'CADDY_CONFIG_DIR=caddy' in rendered
 
 
 def test_release_manifest_render_matches_expected_tags():

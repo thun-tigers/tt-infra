@@ -1,6 +1,6 @@
 # Cloudflare Tunnel mit Caddy
 
-Hinweis: Die verbindliche Referenz fuer das aktuelle Routing- und Proxy-Modell ist `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`. Dieses Dokument fasst nur die Cloudflare-seitige Sicht zusammen.
+Hinweis: Die verbindliche Referenz fuer das aktuelle Routing- und Proxy-Modell ist `docs/CONFIG_UI_AND_RUNTIME_ENV.md`. Dieses Dokument fasst nur die Cloudflare-seitige Sicht zusammen.
 
 Dieses Dokument beschreibt den aktiven Beta-Betrieb mit Cloudflare Tunnel und dem Caddy-Reverse-Proxy (`tt-proxy`).
 

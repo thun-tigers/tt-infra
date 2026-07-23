@@ -1,8 +1,8 @@
 x-common-env: &common-env
   INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?INTERNAL_API_SECRET muss gesetzt sein}
-  LOG_LEVEL: INFO
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
   SSO_SHARED_SECRET: ${SSO_SHARED_SECRET:?SSO_SHARED_SECRET muss gesetzt sein}
-  TZ: Europe/Zurich
+  TZ: ${TZ:-Europe/Zurich}
 
 x-healthcheck-http: &healthcheck-http
   interval: 30s
@@ -34,8 +34,8 @@ services:
       AGENDA_DATABASE_URL: ${AGENDA_DATABASE_URL}
       ANALYTICS_DATABASE_URL: ${ANALYTICS_DATABASE_URL}
       ATTENDANCE_DATABASE_URL: ${ATTENDANCE_DATABASE_URL}
-      MEMBERS_INSTANCE_DIR: /backup-sources/tt-members-instance
-      ANALYTICS_UPLOAD_ROOT: /backup-sources/tt-analytics-uploads
+      MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/backup-sources/tt-members-instance}
+      ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/backup-sources/tt-analytics-uploads}
       AUTO_CREATE_DB: "true"
     volumes:
       - tt-infra-data:/app/instance
@@ -59,11 +59,13 @@ services:
       <<: *common-env
       SECRET_KEY: ${AUTH_SECRET_KEY:?AUTH_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${AUTH_DATABASE_URL}
-      JWT_EXPIRY_HOURS: "8"
-      JWT_COOKIE_SECURE: "true"
+      JWT_EXPIRY_HOURS: "${JWT_EXPIRY_HOURS:-8}"
+      JWT_COOKIE_SECURE: "${JWT_COOKIE_SECURE:-true}"
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-}
+      JWT_COOKIE_NAME: ${JWT_COOKIE_NAME:-tt_jwt}
       AUTO_CREATE_DB: "true"
       CREATE_DEFAULT_USERS: ${CREATE_DEFAULT_USERS:-true}
-      CREATE_DEFAULT_SERVICES: "true"
+      CREATE_DEFAULT_SERVICES: "${CREATE_DEFAULT_SERVICES:-true}"
       DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD muss gesetzt sein}
       DEFAULT_MEMBERS_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/members
@@ -76,7 +78,7 @@ services:
       DEFAULT_ANALYTICS_INTERNAL_URL: http://tt-analytics:5000
       DEFAULT_ATTENDANCE_INTERNAL_URL: http://tt-attendance:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
-      SSO_TOKEN_EXPIRY_SECONDS: "60"
+      SSO_TOKEN_EXPIRY_SECONDS: "${SSO_TOKEN_EXPIRY_SECONDS:-60}"
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/0
     depends_on:
       tt-redis:
@@ -103,7 +105,7 @@ services:
       AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
-      SSO_EXPECTED_AUDIENCE: tt-members
+      SSO_EXPECTED_AUDIENCE: ${MEMBERS_SSO_EXPECTED_AUDIENCE:-tt-members}
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/4
       SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
     volumes:
@@ -135,9 +137,9 @@ services:
       AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
-      SSO_EXPECTED_AUDIENCE: tt-agenda
-      SSO_AUTO_PROVISION_USERS: "true"
-      SSO_SYNC_ROLE: "true"
+      SSO_EXPECTED_AUDIENCE: ${AGENDA_SSO_EXPECTED_AUDIENCE:-tt-agenda}
+      SSO_AUTO_PROVISION_USERS: "${AGENDA_SSO_AUTO_PROVISION_USERS:-true}"
+      SSO_SYNC_ROLE: "${AGENDA_SSO_SYNC_ROLE:-true}"
       WEBHOOK_ENABLED: ${AGENDA_WEBHOOK_ENABLED:-false}
       WEBHOOK_URL: ${AGENDA_WEBHOOK_URL:-}
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/1
@@ -165,19 +167,19 @@ services:
       SECRET_KEY: ${ANALYTICS_SECRET_KEY:?ANALYTICS_SECRET_KEY muss gesetzt sein}
       SQLALCHEMY_DATABASE_URI: ${ANALYTICS_DATABASE_URL}
       AUTH_BASE_URL: ${PUBLIC_BASE_URL:-https://beta.thun-tigers.net}/auth
-      SSO_EXPECTED_AUDIENCE: tt-analytics
-      SSO_AUTO_PROVISION_USERS: "true"
-      SSO_SYNC_ROLE: "true"
+      SSO_EXPECTED_AUDIENCE: ${ANALYTICS_SSO_EXPECTED_AUDIENCE:-tt-analytics}
+      SSO_AUTO_PROVISION_USERS: "${ANALYTICS_SSO_AUTO_PROVISION_USERS:-true}"
+      SSO_SYNC_ROLE: "${ANALYTICS_SSO_SYNC_ROLE:-true}"
       AUTO_CREATE_DB: "true"
       UPLOAD_ROOT: /app/instance/uploads
-      MAX_CONTENT_LENGTH: "2147483648"
+      MAX_CONTENT_LENGTH: "${ANALYTICS_MAX_CONTENT_LENGTH:-2147483648}"
       GEMINI_API_KEY: ${ANALYTICS_GEMINI_API_KEY:-}
       GEMINI_MODEL: ${ANALYTICS_GEMINI_MODEL:-gemini-2.5-flash}
-      GEMINI_FILE_POLL_SECONDS: "5"
-      GEMINI_FILE_POLL_TIMEOUT_SECONDS: "300"
-      GEMINI_MAX_RETRIES: "8"
-      GEMINI_RETRY_BUFFER_SECONDS: "5"
-      GEMINI_RETRY_DEFAULT_SECONDS: "60"
+      GEMINI_FILE_POLL_SECONDS: "${ANALYTICS_GEMINI_FILE_POLL_SECONDS:-5}"
+      GEMINI_FILE_POLL_TIMEOUT_SECONDS: "${ANALYTICS_GEMINI_FILE_POLL_TIMEOUT_SECONDS:-300}"
+      GEMINI_MAX_RETRIES: "${ANALYTICS_GEMINI_MAX_RETRIES:-8}"
+      GEMINI_RETRY_BUFFER_SECONDS: "${ANALYTICS_GEMINI_RETRY_BUFFER_SECONDS:-5}"
+      GEMINI_RETRY_DEFAULT_SECONDS: "${ANALYTICS_GEMINI_RETRY_DEFAULT_SECONDS:-60}"
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/2
       SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
@@ -209,7 +211,7 @@ services:
       TT_MEMBERS_INTERNAL_URL: http://tt-members:5000
       TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
-      SSO_EXPECTED_AUDIENCE: tt-attendance
+      SSO_EXPECTED_AUDIENCE: ${ATTENDANCE_SSO_EXPECTED_AUDIENCE:-tt-attendance}
       RATELIMIT_STORAGE_URI: redis://tt-redis:6379/5
       SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
     depends_on:
@@ -233,25 +235,30 @@ services:
     image: ghcr.io/thun-tigers/tt-postgres:${TIGERS_VERSION:-beta}
     pull_policy: always
     environment:
+      # POSTGRES_*_DB bewusst nicht interpoliert: die Werte werden bereits
+      # korrekt aus dem Servicenamen + ${DATABASE_SUFFIX} zusammengesetzt. Eine
+      # direkte Interpolation des Katalog-Werts wuerde den Suffix doppelt anhaengen
+      # (z.B. tt_infra_beta_beta) und eine echte DB-Umbenennung braucht ohnehin
+      # eine Migration, kein reines Config-Feld.
       POSTGRES_DB: tt_infra${DATABASE_SUFFIX}
-      POSTGRES_USER: tt_infra
+      POSTGRES_USER: ${POSTGRES_INFRA_USER:-tt_infra}
       POSTGRES_PASSWORD: ${POSTGRES_INFRA_PASSWORD:?POSTGRES_INFRA_PASSWORD muss gesetzt sein}
-      POSTGRES_AUTH_USER: tt_auth
+      POSTGRES_AUTH_USER: ${POSTGRES_AUTH_USER:-tt_auth}
       POSTGRES_AUTH_PASSWORD: ${POSTGRES_AUTH_PASSWORD:?POSTGRES_AUTH_PASSWORD muss gesetzt sein}
       POSTGRES_AUTH_DB: tt_auth${DATABASE_SUFFIX}
-      POSTGRES_MEMBERS_USER: tt_members
+      POSTGRES_MEMBERS_USER: ${POSTGRES_MEMBERS_USER:-tt_members}
       POSTGRES_MEMBERS_PASSWORD: ${POSTGRES_MEMBERS_PASSWORD:?POSTGRES_MEMBERS_PASSWORD muss gesetzt sein}
       POSTGRES_MEMBERS_DB: tt_members${DATABASE_SUFFIX}
-      POSTGRES_AGENDA_USER: tt_agenda
+      POSTGRES_AGENDA_USER: ${POSTGRES_AGENDA_USER:-tt_agenda}
       POSTGRES_AGENDA_PASSWORD: ${POSTGRES_AGENDA_PASSWORD:?POSTGRES_AGENDA_PASSWORD muss gesetzt sein}
       POSTGRES_AGENDA_DB: tt_agenda${DATABASE_SUFFIX}
-      POSTGRES_ATTENDANCE_USER: tt_attendance
+      POSTGRES_ATTENDANCE_USER: ${POSTGRES_ATTENDANCE_USER:-tt_attendance}
       POSTGRES_ATTENDANCE_PASSWORD: ${POSTGRES_ATTENDANCE_PASSWORD:?POSTGRES_ATTENDANCE_PASSWORD muss gesetzt sein}
       POSTGRES_ATTENDANCE_DB: tt_attendance${DATABASE_SUFFIX}
-      POSTGRES_ANALYTICS_USER: tt_analytics
+      POSTGRES_ANALYTICS_USER: ${POSTGRES_ANALYTICS_USER:-tt_analytics}
       POSTGRES_ANALYTICS_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:?POSTGRES_ANALYTICS_PASSWORD muss gesetzt sein}
       POSTGRES_ANALYTICS_DB: tt_analytics${DATABASE_SUFFIX}
-      TZ: Europe/Zurich
+      TZ: ${TZ:-Europe/Zurich}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

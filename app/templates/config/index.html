@@ -6,7 +6,9 @@
       <p class="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-600/90 dark:text-cyan-300/80">Tigers Platform</p>
       <h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Konfiguration</h1>
       <p class="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
-        Bearbeitet wird nur die aktuelle Umgebung `{{ profile }}`. Die Werte werden in der zentralen Konfigurationsdatenbank gespeichert und als `.env` exportiert.
+        Bearbeitet wird nur die aktuelle Umgebung `{{ profile }}`. Die Werte werden in der zentralen Konfigurationsdatenbank gespeichert und als `.env` exportiert. Wirksam werden Aenderungen erst, nachdem auf dem Server
+        <code class="rounded bg-slate-100 dark:bg-white/10 px-1.5 py-0.5">./scripts/generate-env.sh {{ profile }}</code> und anschliessend
+        <code class="rounded bg-slate-100 dark:bg-white/10 px-1.5 py-0.5">./scripts/deploy.sh</code> laeuft.
       </p>
     </div>
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -26,7 +28,7 @@
         <div class="text-xs uppercase tracking-[0.24em] {% if generated_env_status %}text-emerald-700 dark:text-emerald-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">generated.env</div>
         <div class="mt-1 text-sm font-medium {% if generated_env_status %}text-emerald-900 dark:text-emerald-100{% else %}text-amber-900 dark:text-amber-100{% endif %}">
           {% if generated_env_status %}
-            Aktualisiert {{ generated_env_status }}
+            Aktualisiert {{ generated_env_status }} — noch nicht deployt? generate-env.sh + deploy.sh ausfuehren.
           {% else %}
             Noch nicht generiert — Speichern erzeugt instance/generated.env
           {% endif %}

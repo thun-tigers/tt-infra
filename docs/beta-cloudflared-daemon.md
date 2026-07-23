@@ -1,6 +1,6 @@
 # Beta-Server mit Arcane und Cloudflared
 
-Hinweis: Die verbindliche Referenz fuer Deploy und Routing ist `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`. Dieses Dokument beschreibt nur den Server- und Cloudflared-Kontext.
+Hinweis: Die verbindliche Referenz fuer Deploy und Routing ist `docs/CONFIG_UI_AND_RUNTIME_ENV.md`. Dieses Dokument beschreibt nur den Server- und Cloudflared-Kontext.
 
 Ziel: Der Beta-Server `46.62.153.114` betreibt den Tigers-Stack mit Docker Compose. Cloudflared routet die Beta-Domain pfad-basiert auf den Caddy-Reverse-Proxy (`tt-proxy`) im Stack. Arcane bleibt nur das Docker-Verwaltungswerkzeug und wird nicht oeffentlich veroeffentlicht.
 

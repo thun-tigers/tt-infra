@@ -1,6 +1,6 @@
 # Datenmigration SQLite nach PostgreSQL
 
-Hinweis: Alle Postgres-Datenbanken laufen inzwischen in einem gemeinsamen Container `tt-postgres` (siehe `docs/HANDOFF_CENTRAL_CONFIG_AND_PROXY.md`). Die untenstehenden Kommandos beziehen sich auf einzelne Datenbanken (`tt_auth`, `tt_agenda`, ...) innerhalb dieses Containers.
+Hinweis: Alle Postgres-Datenbanken laufen inzwischen in einem gemeinsamen Container `tt-postgres` (siehe `docs/CONFIG_UI_AND_RUNTIME_ENV.md`). Die untenstehenden Kommandos beziehen sich auf einzelne Datenbanken (`tt_auth`, `tt_agenda`, ...) innerhalb dieses Containers.
 
 ## Status
 

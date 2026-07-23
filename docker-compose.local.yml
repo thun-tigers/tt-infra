@@ -8,8 +8,8 @@ services:
       DATABASE_URL: ${INFRA_DATABASE_URL}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
-      MEMBERS_INSTANCE_DIR: /app/instance/tt-members-instance
-      ANALYTICS_UPLOAD_ROOT: /app/instance/tt-analytics-uploads
+      MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/app/instance/tt-members-instance}
+      ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/app/instance/tt-analytics-uploads}
     command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ./instance:/app/instance
