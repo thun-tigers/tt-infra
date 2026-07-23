@@ -142,6 +142,37 @@ def _read_profile_rows(engine: Engine, table: Table) -> dict[str, dict[str, str]
     return values
 
 
+def has_saved_config(engine: Engine) -> bool:
+    """True, sobald irgendwer irgendein Profil je gespeichert hat.
+
+    Dient dem Setup-Assistenten als "ist das ein Erstdeploy?"-Signal. Erst
+    nach dem ersten echten Save (egal welches Profil/Feld) liefert dies True.
+    """
+    ensure_schema(engine)
+    with engine.begin() as conn:
+        settings_count = conn.execute(select(func.count()).select_from(platform_settings)).scalar_one()
+        secrets_count = conn.execute(select(func.count()).select_from(platform_secrets)).scalar_one()
+    return bool(settings_count or secrets_count)
+
+
+def load_profile_overrides_from_db(engine: Engine) -> dict[str, dict[str, str]]:
+    """Nur die tatsaechlich gespeicherten (sparsen) Overrides, ohne Defaults.
+
+    Fuer Stellen, die gezielt NUR ein paar Felder speichern wollen (z.B. der
+    Setup-Assistent) - im Gegensatz zu load_profile_store_from_db(), das fuer
+    die Anzeige immer die volle, mit Defaults gemergte Sicht liefert.
+    """
+    ensure_schema(engine)
+    settings_store = _read_profile_rows(engine, platform_settings)
+    secret_store = _read_profile_rows(engine, platform_secrets)
+    merged = _empty_store()
+    for profile in PROFILE_NAMES:
+        raw_values = dict(settings_store.get(profile, {}))
+        raw_values.update(secret_store.get(profile, {}))
+        merged[profile] = raw_values
+    return merged
+
+
 def load_profile_store_from_db(
     engine: Engine,
     *,
@@ -155,18 +186,20 @@ def load_profile_store_from_db(
         secrets_count = conn.execute(select(func.count()).select_from(platform_secrets)).scalar_one()
         has_rows = bool(settings_count or secrets_count)
 
-    if not has_rows:
-        if fallback_path and fallback_path.exists():
-            store = load_profile_store_file(fallback_path, seed_defaults=seed_defaults)
-            secret_path = fallback_path.with_name('secrets.local.json')
-            if secret_path.exists():
-                secret_store = load_profile_store_file(secret_path, seed_defaults=False)
-                for profile in PROFILE_NAMES:
-                    store[profile].update(secret_store.get(profile, {}))
-        elif seed_defaults:
-            store = {profile: profile_values(profile) for profile in PROFILE_NAMES}
-        else:
-            store = _empty_store()
+    if not has_rows and fallback_path and fallback_path.exists():
+        # Einmalige Migration aus der alten datei-basierten Speicherung. Ein
+        # leerer Start ohne Fallback-Datei schreibt bewusst NICHTS in die DB -
+        # has_rows bleibt sonst nach jedem Read faelschlich True, weil hier
+        # samtliche Profil-Defaults dauerhaft als "explizite" Werte eingefroren
+        # wuerden. Spaetere Verbesserungen an einem Default in platform_config.py
+        # kaemen dann nie mehr durch, und has_rows waere fuer den Setup-
+        # Assistenten kein ehrliches "wurde hier schon je etwas gespeichert"-Signal.
+        store = load_profile_store_file(fallback_path, seed_defaults=seed_defaults)
+        secret_path = fallback_path.with_name('secrets.local.json')
+        if secret_path.exists():
+            secret_store = load_profile_store_file(secret_path, seed_defaults=False)
+            for profile in PROFILE_NAMES:
+                store[profile].update(secret_store.get(profile, {}))
         save_profile_store_to_db(engine, store)
 
     settings_store = _read_profile_rows(engine, platform_settings)

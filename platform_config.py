@@ -29,7 +29,10 @@ def section(title: str, *entries: EnvEntry) -> EnvSection:
 
 
 PROFILE_NAMES = ('local', 'beta', 'production')
-SECRET_MARKERS = ('SECRET', 'PASSWORD', 'TOKEN', 'API_KEY')
+# 'TOKEN' bewusst nicht als Marker: SSO_TOKEN_EXPIRY_SECONDS ist eine Zahl,
+# kein Geheimnis, wuerde aber ueber einen reinen Teilstring-Treffer faelschlich
+# als Secret maskiert.
+SECRET_MARKERS = ('SECRET', 'PASSWORD', 'API_KEY')
 BOOLEAN_HINTS = (
     '_ENABLED',
     '_SECURE',
@@ -70,6 +73,35 @@ OPERATOR_KEYS: frozenset[str] = frozenset({
     'AGENDA_WEBHOOK_URL',
     'ANALYTICS_GEMINI_API_KEY',
     'ANALYTICS_GEMINI_MODEL',
+})
+
+# Felder, die in der /infra/config-Weboberflaeche standardmaessig sichtbar sind.
+# Kriterium: haendisch aendern koennte tatsaechlich noetig/sinnvoll sein. Alles
+# andere (Docker-interne DNS-Namen, feste Postgres-Nutzernamen, Timing-Details,
+# ...) ist weiterhin ueber ".env herunterladen" vollstaendig erreichbar und im
+# UI hinter "Erweitert anzeigen" versteckt, nicht entfernt.
+ESSENTIAL_KEYS: frozenset[str] = frozenset({
+    'PUBLIC_BASE_URL',
+    'DEPLOYMENT_NAME',
+    'INFRA_SECRET_KEY',
+    'AUTH_SECRET_KEY',
+    'MEMBERS_SECRET_KEY',
+    'AGENDA_SECRET_KEY',
+    'ANALYTICS_SECRET_KEY',
+    'ATTENDANCE_SECRET_KEY',
+    'SSO_SHARED_SECRET',
+    'INTERNAL_API_SECRET',
+    'CREATE_DEFAULT_USERS',
+    'CREATE_DEFAULT_SERVICES',
+    'AGENDA_WEBHOOK_ENABLED',
+    'AGENDA_WEBHOOK_URL',
+    'ANALYTICS_GEMINI_API_KEY',
+    'POSTGRES_INFRA_PASSWORD',
+    'POSTGRES_AUTH_PASSWORD',
+    'POSTGRES_MEMBERS_PASSWORD',
+    'POSTGRES_AGENDA_PASSWORD',
+    'POSTGRES_ANALYTICS_PASSWORD',
+    'POSTGRES_ATTENDANCE_PASSWORD',
 })
 
 

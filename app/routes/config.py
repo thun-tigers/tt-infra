@@ -13,6 +13,7 @@ from config_store import (
     save_profile_store_to_db,
 )
 from platform_config import (
+    ESSENTIAL_KEYS,
     PROFILE_NAMES,
     PUBLIC_DERIVED_KEYS,
     infer_field_kind,
@@ -75,21 +76,31 @@ def _profile_payload(profile: str, values: dict[str, str]) -> dict[str, object]:
     validation_errors = profile_validation_errors(profile, overrides=values)
     section_payloads = []
     for section in sections:
-        entries = []
+        essential_entries = []
+        advanced_entries = []
         for item in section.entries:
-            entries.append(
-                {
-                    'key': item.key,
-                    'value': item.value,
-                    'display_value': _display_value(item.key, item.value),
-                    'kind': infer_field_kind(item.key),
-                    'required': item.required,
-                    'masked': is_secret_key(item.key),
-                    'value_present': bool(item.value),
-                    'derived': item.key in PUBLIC_DERIVED_KEYS,
-                }
-            )
-        section_payloads.append({'title': section.title, 'entries': entries})
+            derived = item.key in PUBLIC_DERIVED_KEYS
+            payload_item = {
+                'key': item.key,
+                'value': item.value,
+                'display_value': _display_value(item.key, item.value),
+                'kind': infer_field_kind(item.key),
+                'required': item.required,
+                'masked': is_secret_key(item.key),
+                'value_present': bool(item.value),
+                'derived': derived,
+            }
+            # Abgeleitete Public-URLs sind nie "essenziell" editierbar - sie
+            # landen zusammen mit den uebrigen erweiterten Feldern.
+            if item.key in ESSENTIAL_KEYS and not derived:
+                essential_entries.append(payload_item)
+            else:
+                advanced_entries.append(payload_item)
+        section_payloads.append({
+            'title': section.title,
+            'essential_entries': essential_entries,
+            'advanced_entries': advanced_entries,
+        })
 
     return {
         'name': profile,

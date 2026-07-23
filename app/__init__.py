@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, redirect, request, session, url_for
 from sqlalchemy import inspect, text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -10,6 +10,7 @@ from .config import Config
 from .db_bootstrap import schema_setup_lock
 from .extensions import db
 from .models import PositionGroup
+from config_store import has_saved_config
 from platform_config import detect_profile
 
 
@@ -52,12 +53,33 @@ def create_app(config_class=Config):
     from .routes.backup import bp as backup_bp
     from .routes.config import bp as config_bp
     from .routes.master_data import bp as master_data_bp
+    from .routes.setup import bp as setup_bp
     app.register_blueprint(api_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(backup_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(master_data_bp)
+    app.register_blueprint(setup_bp)
+
+    # Bereiche, die bei einem unkonfigurierten Erstdeploy zum Setup-Assistenten
+    # umgeleitet werden. api/auth bleiben aussen vor (SSO-Login und interne
+    # Service-Aufrufe muessen unabhaengig vom Konfigurationsstand erreichbar
+    # sein), setup natuerlich auch (sonst keine Umleitung moeglich). backup
+    # bleibt bewusst ungegated: das Wiederherstellen eines bestehenden Backups
+    # ist ein legitimer Alternativweg zur Ersteinrichtung.
+    GATED_BLUEPRINTS = {'admin', 'config', 'master_data'}
+
+    @app.before_request
+    def _require_setup_if_unconfigured():
+        if request.blueprint not in GATED_BLUEPRINTS:
+            return None
+        is_admin = session.get('platform_role') == 'admin' or session.get('service_role') == 'admin'
+        if not is_admin:
+            return None
+        if has_saved_config(db.engine):
+            return None
+        return redirect(url_for('setup.index'))
 
     # Zentrales UI-Layout aus tt-common
     from tt_common import register_shared_ui
