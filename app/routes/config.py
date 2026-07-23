@@ -43,7 +43,7 @@ TAB_DEFINITIONS = (
 
 
 def _store_path() -> Path:
-    return Path(current_app.config['TT_CONFIG_STORE_PATH'])
+    return Path(current_app.instance_path) / 'platform-config.json'
 
 
 def _repo_root() -> Path:
