@@ -7,6 +7,7 @@ from sqlalchemy import inspect, text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
+from .db_bootstrap import schema_setup_lock
 from .extensions import db
 from .models import PositionGroup
 from platform_config import detect_profile
@@ -89,11 +90,11 @@ def create_app(config_class=Config):
         }
 
     with app.app_context():
-        db.create_all()
         if app.config.get('AUTO_CREATE_DB', True):
-            db.create_all()
-            _ensure_schema()
-            _seed_defaults()
+            with schema_setup_lock(db.engine):
+                db.create_all()
+                _ensure_schema()
+                _seed_defaults()
 
         Path(app.config.get('MEMBERS_INSTANCE_DIR', '/backup-sources/tt-members-instance')).mkdir(parents=True, exist_ok=True)
         Path(app.config.get('ANALYTICS_UPLOAD_ROOT', '/backup-sources/tt-analytics-uploads')).mkdir(parents=True, exist_ok=True)
