@@ -104,7 +104,7 @@ services:
       TT_AUTH_INTERNAL_URL: http://tt-auth:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_EXPECTED_AUDIENCE: tt-members
-      RATELIMIT_STORAGE_URI: memory://
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/4
       SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
     volumes:
       - tt-members-data:/app/instance
@@ -210,7 +210,7 @@ services:
       TT_AGENDA_INTERNAL_URL: http://tt-agenda:5000
       TT_INFRA_INTERNAL_URL: http://tt-infra:5000
       SSO_EXPECTED_AUDIENCE: tt-attendance
-      RATELIMIT_STORAGE_URI: memory://
+      RATELIMIT_STORAGE_URI: redis://tt-redis:6379/5
       SSO_REPLAY_STORAGE_URI: redis://tt-redis:6379/3
     depends_on:
       tt-auth:
