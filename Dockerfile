@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y ca-certificates gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-ARG TT_COMMON_REF=v0.2.0
+ARG TT_COMMON_REF=v0.2.2
 RUN sed -i "s#@v[0-9][0-9.]*#@${TT_COMMON_REF}#" requirements.txt \
     && pip install --no-cache-dir -r requirements.txt
 

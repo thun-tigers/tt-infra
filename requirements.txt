@@ -4,4 +4,4 @@ gunicorn==22.0.0
 psycopg[binary]==3.2.12
 PyJWT==2.10.1
 
-tt-common @ git+https://github.com/thun-tigers/tt-common@v0.2.0
+tt-common @ git+https://github.com/thun-tigers/tt-common@v0.2.2
