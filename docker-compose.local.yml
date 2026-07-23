@@ -1,6 +1,14 @@
 services:
   tt-infra:
-    build: .
+    build:
+      context: .
+      # Ohne dies erzeugt jeder Build eine neue Provenance-Attestation (mit
+      # Zeitstempel) und damit eine neue Image-ID, selbst wenn alle Layer
+      # gecacht sind - "docker compose up -d" recreated tt-infra dann bei
+      # JEDEM Deploy, auch ohne echte Aenderung. Relevant, weil die Ops-
+      # Buttons (/ops/apply, /ops/restart) genau diesen Container waehrend
+      # der Ausfuehrung des eigenen Requests neu starten wuerden.
+      provenance: false
     pull_policy: build
     env_file: .env
     environment:
@@ -10,9 +18,17 @@ services:
       SSO_SHARED_SECRET: ${SSO_SHARED_SECRET}
       MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/app/instance/tt-members-instance}
       ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/app/instance/tt-analytics-uploads}
+      # Die Ops-Buttons (/ops/apply, /ops/restart) rufen deploy.sh auf, das
+      # hier per pull_policy:build ALLE Services aus Sibling-Ordnern baut
+      # (../tt-auth, ../tt-analytics, ...) - dafuer muss der Container das
+      # Eltern-Verzeichnis sehen, nicht nur den eigenen Checkout (siehe
+      # zugehoeriges Volume unten). Nur lokal so weit gefasst; beta/production
+      # bleiben beim schmalen Default aus compose.yml (kein Sibling-Build).
+      TIGERS_STACK_ROOT: /opt/tigers-parent/tt-infra
     command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
     volumes:
       - ./instance:/app/instance
+      - ..:/opt/tigers-parent:rw
     ports:
       - "${INFRA_PORT:-8084}:5000"
 

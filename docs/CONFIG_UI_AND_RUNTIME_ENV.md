@@ -51,15 +51,43 @@ sie, verhaelt sich der Bootstrap exakt wie vor diesem Fix.
 
 ## Wichtig fuer Operator:innen
 
-Eine Aenderung in `/infra/config` wirkt **nicht sofort**. Sie wird erst nach
+Eine Aenderung in `/infra/config` wirkt **nicht sofort**. Sie wird erst aktiv
+(Container-Restart mit neuem `instance/runtime.env`), nachdem entweder
 
-```bash
-./scripts/generate-env.sh <profil>
-./scripts/deploy.sh
-```
+- auf `/infra/config` der Button "Übernehmen & Neustarten" geklickt wird (ruft
+  intern `generate-env.sh <profil>` und `deploy.sh` ueber den in `tt-infra`
+  gemounteten Docker-Socket auf, siehe `app/routes/ops.py`), oder
+- manuell auf dem Server
 
-auf dem Server aktiv (Container-Restart mit neuem `instance/runtime.env`). Die
-Web-UI startet den Stack nicht selbst neu.
+  ```bash
+  ./scripts/generate-env.sh <profil>
+  ./scripts/deploy.sh
+  ```
+
+  ausgefuehrt wird.
+
+`/infra/admin` bietet zusaetzlich "Stack neu starten" (nur `deploy.sh`, ohne
+Env-Neugenerierung) fuer eine reine Reconciliation, z. B. nach einem Absturz.
+
+Bekannte Einschraenkung: Aendern sich tt-infras eigene Env-Werte, kann
+`docker compose up -d` den Container mitten im Deploy killen, der den Befehl
+gerade ausfuehrt - der Request bricht dann ohne sichtbare Erfolgsmeldung ab.
+`restart: unless-stopped` startet den Container danach nicht automatisch neu
+(er wurde von Compose absichtlich gestoppt, nicht abgestuerzt); ein erneuter
+Klick auf den Button oder `./scripts/deploy.sh` auf dem Server vervollstaendigt
+den Deploy (idempotent).
+
+**Lokal (`docker-compose.local.yml`) tritt das bei praktisch jedem Klick auf**,
+nicht nur bei echten Aenderungen: die dort gebauten Images enthalten per
+Default eine BuildKit-Provenance-Attestation mit Zeitstempel, wodurch jeder
+Build eine neue Image-ID erzeugt, selbst wenn kein Layer sich aendert -
+`docker compose up -d` sieht dadurch bei jedem Aufruf ein "geaendertes" Image
+und recreated den Container. Fuer `tt-infra` selbst ist das per
+`build.provenance: false` in `docker-compose.local.yml` gemildert, behebt es
+aber nicht vollstaendig (siehe `Dockerfile`/`.dockerignore`-Kommentare). Auf
+beta/production (`pull_policy: always`, vorgebaute GHCR-Images statt lokalem
+Build) tritt dieses Verhalten nicht auf - dort recreated `docker compose up -d`
+nur, wenn sich das Image tatsaechlich geaendert hat.
 
 ## Bekannte, bewusst nicht editierbare Felder
 

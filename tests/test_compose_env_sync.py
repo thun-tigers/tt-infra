@@ -42,7 +42,10 @@ NOT_COMPOSE_INTERPOLATED = {
 
 # In compose.yml referenziert, aber keine platform_config.py-Katalogschluessel
 # (docker-compose-eigene bzw. rein strukturelle Variablen).
-MINIMAL_COMPOSE_KEYS = {'DEPLOYMENT_NAME', 'PUBLIC_BASE_URL', 'TIGERS_VERSION', 'DATABASE_SUFFIX'}
+# TIGERS_STACK_ROOT: interner Pfad fuer die Ops-Buttons (/ops/apply,
+# /ops/restart), siehe app/config.py - kein vom Operator ueber die Config-UI
+# editierbarer Wert, nur lokal ueberhaupt abweichend von seinem Default gesetzt.
+MINIMAL_COMPOSE_KEYS = {'DEPLOYMENT_NAME', 'PUBLIC_BASE_URL', 'TIGERS_VERSION', 'DATABASE_SUFFIX', 'TIGERS_STACK_ROOT'}
 
 
 def _compose_keys() -> set[str]:

@@ -1,0 +1,13 @@
+.git
+.env
+.env.local
+.env.beta
+.env.prod
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+migration-archive/
+instance/
+secrets.local.json
+platform-config.json

@@ -24,3 +24,8 @@ class Config:
     MEMBERS_DATABASE_URL = os.environ.get('MEMBERS_DATABASE_URL', 'postgresql+psycopg://tt_members:tt_members_password@tt-postgres-members:5432/tt_members')
     MEMBERS_INSTANCE_DIR = os.environ.get('MEMBERS_INSTANCE_DIR', str(Path('/backup-sources') / 'tt-members-instance'))
     ANALYTICS_UPLOAD_ROOT = os.environ.get('ANALYTICS_UPLOAD_ROOT', str(Path('/backup-sources') / 'tt-analytics-uploads'))
+    # Live-Checkout fuer die Ops-Buttons (/ops/apply, /ops/restart), siehe
+    # compose.yml (Docker-Socket + Repo-Mount). Lokal auf einen Pfad ueber dem
+    # Eltern-Verzeichnis umgebogen, weil docker-compose.local.yml alle Services
+    # aus Sibling-Ordnern (../tt-auth, ...) baut - siehe docker-compose.local.yml.
+    TIGERS_STACK_ROOT = os.environ.get('TIGERS_STACK_ROOT', '/opt/tigers-stack')

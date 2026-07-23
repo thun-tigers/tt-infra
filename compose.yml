@@ -37,10 +37,19 @@ services:
       MEMBERS_INSTANCE_DIR: ${MEMBERS_INSTANCE_DIR:-/backup-sources/tt-members-instance}
       ANALYTICS_UPLOAD_ROOT: ${ANALYTICS_UPLOAD_ROOT:-/backup-sources/tt-analytics-uploads}
       AUTO_CREATE_DB: "true"
+      # Fuer die Ops-Buttons (siehe volumes unten) - lokal auf einen Pfad ueber
+      # dem Eltern-Verzeichnis umgebogen (docker-compose.local.yml), sonst der
+      # schmale Default (nur der eigene Checkout, kein Sibling-Zugriff).
+      TIGERS_STACK_ROOT: ${TIGERS_STACK_ROOT:-/opt/tigers-stack}
     volumes:
       - tt-infra-data:/app/instance
       - tt-members-data:/backup-sources/tt-members-instance
       - analytics-uploads-data:/backup-sources/tt-analytics-uploads
+      # Fuer die Ops-Buttons (/ops/apply, /ops/restart): Docker-Socket +
+      # Repo-Checkout, damit tt-infra generate-env.sh/deploy.sh auf dem Host
+      # ausfuehren kann. "." loest sich relativ zu compose.yml auf (Repo-Root).
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/opt/tigers-stack:rw
     depends_on:
       tt-postgres:
         condition: service_healthy

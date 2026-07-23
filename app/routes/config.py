@@ -236,8 +236,8 @@ def index(current_user, profile: str | None = None):
         try:
             written_path = _write_generated_env(profile, store_values)
             env_note = (
-                f' {written_path.name} aktualisiert — wirksam erst nach '
-                f'"./scripts/generate-env.sh {profile}" und "./scripts/deploy.sh".'
+                f' {written_path.name} aktualisiert — wirksam erst nach "Übernehmen & Neustarten" '
+                'unten (oder manuell via generate-env.sh + deploy.sh).'
             )
         except OSError as exc:
             current_app.logger.error('Fehler beim Schreiben von generated.env: %s', exc)

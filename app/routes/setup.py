@@ -79,9 +79,8 @@ def index(current_user):
             current_app.logger.error('Fehler beim Schreiben von generated.env: %s', exc)
 
         flash(
-            'Ersteinrichtung gespeichert. Wirksam erst nach '
-            f'"./scripts/generate-env.sh {profile}" und "./scripts/deploy.sh" auf dem Server. '
-            'Weitere Einstellungen findest du jederzeit unter Konfiguration.',
+            'Ersteinrichtung gespeichert. Wirksam erst nach "Übernehmen & Neustarten" auf der '
+            'Konfigurationsseite. Weitere Einstellungen findest du dort jederzeit.',
             'success',
         )
         return redirect(url_for('config.index'))
